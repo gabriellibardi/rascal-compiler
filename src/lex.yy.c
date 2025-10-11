@@ -2075,13 +2075,3 @@ int yywrap(void) {
     return 1;
 }
 
-// Implementacao do main para que o analisador funcione sozinho
-// Quando o analisador está integrado com o parser, nao tem main()
-int main (int argc, char *argv[]) {
-    int tok;
-    yyin = fopen(argv[1], "r");
-    while (tok=yylex()) {
-        printf("<%s, %d> (linha: %d)\n", lexeme, tok, yylineno);
-    }
-    fclose(yyin);
-}

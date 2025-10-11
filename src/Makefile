@@ -1,16 +1,16 @@
-all: rascal
+all: rascal.out
 
-syntactic.tab.c syntactic.tab.h: syntactic.y
-	bison -d syntactic.y
+parser.tab.c parser.tab.h: parser.y
+	bison -d parser.y
 
-lex.yy.c: lexer.l syntactic.tab.h
+lex.yy.c: lexer.l parser.tab.h
 	flex lexer.l
 
-rascal: rascal.cpp syntactic.tab.c lex.yy.c
-	g++ rascal.cpp syntactic.tab.c lex.yy.c -o rascal
+rascal.out: rascal.cpp parser.tab.c lex.yy.c
+	g++ rascal.cpp parser.tab.c lex.yy.c -o rascal.out
 
 clean:
-	rm syntactic.tab.* lex.yy.c rascal
+	rm parser.tab.* lex.yy.c rascal
 
 recompile:
-	clean rascal
+	clean rascal.out
