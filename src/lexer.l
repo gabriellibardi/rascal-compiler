@@ -1,7 +1,7 @@
 %{
 enum {TOK_PROGRAM=256, TOK_BEGIN, TOK_END,
 TOK_ASSIGNMENT, TOK_VAR, TOK_PROCEDURE, TOK_FUNCTION,
-TOK_DOT, TOK_COLON, TOK_SEMICOLON, TOK_OPEN, TOK_CLOSE,
+TOK_DOT, TOK_COMMA, TOK_COLON, TOK_SEMICOLON, TOK_OPEN, TOK_CLOSE,
 TOK_IF, TOK_THEN, TOK_ELSE,
 TOK_WHILE, TOK_DO,
 TOK_ADD, TOK_SUB, TOK_MUL, TOK_DIV,
@@ -32,6 +32,7 @@ space      [ \t\n]
 "function"          { strcpy(lexeme, yytext); return TOK_FUNCTION; }
 
 "."                 { strcpy(lexeme, yytext); return TOK_DOT; }
+","                 { strcpy(lexeme, yytext); return TOK_COMMA;}
 ":"                 { strcpy(lexeme, yytext); return TOK_COLON; }
 ";"                 { strcpy(lexeme, yytext); return TOK_SEMICOLON; }
 "("                 { strcpy(lexeme, yytext); return TOK_OPEN; }

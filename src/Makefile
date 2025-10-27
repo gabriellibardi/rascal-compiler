@@ -1,16 +1,34 @@
-all: rascal.out
+SRC = src
+BUILD = build
+GEN = $(BUILD)/generated
+INCLUDE = include
 
-parser.tab.c parser.tab.h: parser.y
-	bison -d parser.y
+GRAMMAR = $(SRC)/grammar
+F_IN = $(GRAMMAR)/lexer.l
+B_IN = $(GRAMMAR)/parser.y
 
-lex.yy.c: lexer.l parser.tab.h
-	flex lexer.l
+AST = $(SRC)/ast.cpp
+RASCAL = $(SRC)/rascal.cpp
 
-rascal.out: rascal.cpp parser.tab.c lex.yy.c
-	g++ rascal.cpp parser.tab.c lex.yy.c -o rascal.out
+F_OUT = $(GEN)/lex.yy.cpp
+B_OUT = $(GEN)/parser.tab.cpp
+B_HEADER = $(GEN)/parser.tab.hpp
+
+RASCAL = $(BUILD)/rascal
+
+all: $(RASCAL)
+
+$(B_OUT) $(B_HEADER): $(B_IN)
+	bison -d $(B_IN) -o $(B_OUT)
+
+$(F_OUT): $(F_IN) $(B_HEADER)
+	flex -o $(F_OUT) $(F_IN)
+
+$(CALC): $(B_OUT) $(F_OUT)
+	g++ $(B_OUT) $(F_OUT) $(AST) -Wall -o $(RASCAL) -I$(SRC) -I$(GEN) -I$(INCLUDE)
 
 clean:
-	rm parser.tab.* lex.yy.c rascal
+	rm -f $(CALC) $(F_OUT) $(B_OUT) $(B_HEADER)
 
-recompile:
-	clean rascal.out
+run: $(CALC)
+	$(CALC) < $(file)
