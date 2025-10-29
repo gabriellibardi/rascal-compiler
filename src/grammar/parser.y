@@ -188,8 +188,3 @@ function_call                          : TOK_ID TOK_OPEN optional_expression_lis
 void yyerror(const char * msg){
    fprintf(stderr, "ERROR: %s -> ", msg);
 }
-
-int main(void) {
-   yyparse();
-   printf("\n");
-}

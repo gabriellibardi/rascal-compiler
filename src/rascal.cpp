@@ -1,4 +1,4 @@
-#include "parser.tab.h"
+#include "parser.tab.hpp"
 #include <stdio.h>
 #include "rascal.hpp"
 

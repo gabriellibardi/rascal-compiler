@@ -18,17 +18,23 @@ EXE = $(BUILD)/rascal
 
 all: $(EXE)
 
-$(B_OUT) $(B_HEADER): $(B_IN)
+$(BUILD):
+	mkdir -p $(BUILD)
+
+$(GEN): | $(BUILD)
+	mkdir -p $(GEN)
+
+$(B_OUT) $(B_HEADER): $(B_IN) | $(GEN)
 	bison -d $(B_IN) -o $(B_OUT)
 
-$(F_OUT): $(F_IN) $(B_HEADER)
+$(F_OUT): $(F_IN) $(B_HEADER) | $(GEN)
 	flex -o $(F_OUT) $(F_IN)
 
-$(EXE): $(B_OUT) $(F_OUT)
+$(EXE): $(B_OUT) $(F_OUT) $(AST) $(RASCAL) | $(BUILD)
 	g++ $(B_OUT) $(F_OUT) $(AST) $(RASCAL) -Wall -o $(EXE) -I$(SRC) -I$(GEN) -I$(INCLUDE)
 
 clean:
-	rm -f $(CALC) $(F_OUT) $(B_OUT) $(B_HEADER)
+	rm -rf $(BUILD)
 
-run: $(CALC)
-	$(CALC) < $(file)
+run: $(EXE)
+	$(EXE) < $(file)
