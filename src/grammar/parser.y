@@ -17,17 +17,23 @@ void yyerror(const char *);
 %token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_E TOK_NE TOK_L TOK_LE TOK_G TOK_GE
 %token TOK_OR TOK_AND TOK_NOT TOK_BOOLEAN TOK_INTEGER TOK_READ TOK_WRITE
 %token TOK_TRUE TOK_FALSE
+%token TOK_ERROR TOK_MALFORMED_NUM
 %token <ival> TOK_NUMBER
 %token <sval> TOK_ID
 
+%nonassoc IF_PREC
+%nonassoc TOK_ELSE
+
 %define parse.error verbose
+
+%start program
 
 %%
 
 program                                : TOK_PROGRAM TOK_ID TOK_SEMICOLON block TOK_DOT
                                        ;
 
-block                                  : optional_var_assignment_section optional_subroutine_assignment_section composite_command
+block                                  : optional_var_assignment_section subroutine_assignment_section composite_command
                                        ;
 
 optional_var_assignment_section        : var_assignment_section
@@ -47,10 +53,6 @@ identifier_list                        : TOK_ID
 
 type                                   : TOK_BOOLEAN
                                        | TOK_INTEGER
-                                       ;
-
-optional_subroutine_assignment_section : subroutine_assignment_section
-                                       |
                                        ;
 
 subroutine_assignment_section          :
@@ -108,11 +110,8 @@ optional_expression_list               : expression_list
                                        |
                                        ;
 
-conditional                            : TOK_IF expression TOK_THEN command optional_else_block
-                                       ;
-
-optional_else_block                    : TOK_ELSE command
-                                       |
+conditional                            : TOK_IF expression TOK_THEN command %prec IF_PREC
+                                       | TOK_IF expression TOK_THEN command TOK_ELSE command
                                        ;
 
 repetition                             : TOK_WHILE expression TOK_DO command
@@ -186,5 +185,5 @@ function_call                          : TOK_ID TOK_OPEN optional_expression_lis
 %%
 
 void yyerror(const char * msg){
-   fprintf(stderr, "ERROR: %s -> ", msg);
+    fprintf(stderr, "Erro sintatico: %s\n", msg);
 }

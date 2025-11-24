@@ -1,16 +1,6 @@
 %{
-enum {TOK_PROGRAM=256, TOK_BEGIN, TOK_END,
-TOK_ASSIGNMENT, TOK_VAR, TOK_PROCEDURE, TOK_FUNCTION,
-TOK_DOT, TOK_COMMA, TOK_COLON, TOK_SEMICOLON, TOK_OPEN, TOK_CLOSE,
-TOK_IF, TOK_THEN, TOK_ELSE,
-TOK_WHILE, TOK_DO,
-TOK_ADD, TOK_SUB, TOK_MUL, TOK_DIV,
-TOK_E, TOK_NE, TOK_L, TOK_LE, TOK_G, TOK_GE,
-TOK_OR, TOK_AND, TOK_NOT,
-TOK_BOOLEAN, TOK_INTEGER,
-TOK_READ, TOK_WRITE,
-TOK_TRUE, TOK_FALSE,
-TOK_NUMBER, TOK_ID, TOK_MALFORMED_NUM, TOK_ERROR};
+#include "parser.tab.hpp"
+
 char lexeme[100];
 %}
 
@@ -74,7 +64,7 @@ space      [ \t\n]
 {digit}+            { strcpy(lexeme, yytext); return TOK_NUMBER; }
 {id}                { strcpy(lexeme, yytext); return TOK_ID; }
 {space}+            /* ignora espaços, tabs e quebras de linha */
-.                   { strcpy(lexeme, yytext); return TOK_ERROR; }
+.                   { printf("Erro lexico!\n"); strcpy(lexeme, yytext); return TOK_ERROR; }
 
 %%
 
