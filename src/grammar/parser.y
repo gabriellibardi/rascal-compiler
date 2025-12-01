@@ -1,15 +1,35 @@
+%require "3.2"
+%language "c++"
+
+%define api.value.type variant
+
+%define api.token.constructor
+
+%define parse.assert
+
+%code requires {
+    #include <vector>
+    #include <memory>
+    #include <string>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include "ast.hpp"
+
+    using namespace std;
+}
+
 %{
-#include <stdio.h>
-#include <string.h>
+#undef YY_DECL
+#define YY_DECL yy::parser::symbol_type yylex()
+#include "ast.hpp"
+
+using namespace std;
 
 int yylex(void);
-void yyerror(const char *);
 %}
 
-%union {
-    char *sval;
-    int  ival;
-}
+%define api.token.prefix {TOK_}
 
 %token TOK_PROGRAM TOK_BEGIN TOK_END TOK_ASSIGNMENT TOK_VAR
 %token TOK_PROCEDURE TOK_FUNCTION TOK_DOT TOK_COMMA TOK_COLON TOK_SEMICOLON
@@ -18,8 +38,10 @@ void yyerror(const char *);
 %token TOK_OR TOK_AND TOK_NOT TOK_BOOLEAN TOK_INTEGER TOK_READ TOK_WRITE
 %token TOK_TRUE TOK_FALSE
 %token TOK_ERROR TOK_MALFORMED_NUM
-%token <ival> TOK_NUMBER
-%token <sval> TOK_ID
+%token <int> TOK_NUMBER
+%token <string> TOK_ID
+
+%type <shared_ptr<NoProgram>> program
 
 %nonassoc IF_PREC
 %nonassoc TOK_ELSE
@@ -31,7 +53,10 @@ void yyerror(const char *);
 %%
 
 program                                
-    : TOK_PROGRAM TOK_ID TOK_SEMICOLON block TOK_DOT
+    : TOK_PROGRAM TOK_ID TOK_SEMICOLON block TOK_DOT {
+        $$ = make_shared<NoProgram>("AST root!");
+        root = $$;
+    }
     ;
 
 block                                  
@@ -222,6 +247,8 @@ function_call
 
 %%
 
-void yyerror(const char * msg){
-    fprintf(stderr, "Erro sintatico: %s\n", msg);
+namespace yy {
+    void parser::error(const string& msg) {
+        cout << "Parsing error: " << msg << endl;
+    }
 }

@@ -1,10 +1,10 @@
 %{
+#undef YY_DECL
+#define YY_DECL yy::parser::symbol_type yylex()
 #include "parser.tab.hpp"
-
-char lexeme[100];
 %}
 
-%option yylineno
+%option noyywrap yylineno batch
 
 digit      [0-9]
 id         [a-zA-Z][a-zA-Z0-9_]*
@@ -12,64 +12,58 @@ space      [ \t\n]
 
 %%
 
-"program"           { strcpy(lexeme, yytext); return TOK_PROGRAM; }
-"begin"             { strcpy(lexeme, yytext); return TOK_BEGIN; }
-"end"               { strcpy(lexeme, yytext); return TOK_END; }
+"program"           { return yy::parser::make_TOK_PROGRAM(); }
+"begin"             { return yy::parser::make_TOK_BEGIN(); }
+"end"               { return yy::parser::make_TOK_END(); }
 
-":="                { strcpy(lexeme, yytext); return TOK_ASSIGNMENT; }
-"var"               { strcpy(lexeme, yytext); return TOK_VAR; }
-"procedure"         { strcpy(lexeme, yytext); return TOK_PROCEDURE; }
-"function"          { strcpy(lexeme, yytext); return TOK_FUNCTION; }
+":="                { return yy::parser::make_TOK_ASSIGNMENT(); }
+"var"               { return yy::parser::make_TOK_VAR(); }
+"procedure"         { return yy::parser::make_TOK_PROCEDURE(); }
+"function"          { return yy::parser::make_TOK_FUNCTION(); }
 
-"."                 { strcpy(lexeme, yytext); return TOK_DOT; }
-","                 { strcpy(lexeme, yytext); return TOK_COMMA;}
-":"                 { strcpy(lexeme, yytext); return TOK_COLON; }
-";"                 { strcpy(lexeme, yytext); return TOK_SEMICOLON; }
-"("                 { strcpy(lexeme, yytext); return TOK_OPEN; }
-")"                 { strcpy(lexeme, yytext); return TOK_CLOSE; }
+"."                 { return yy::parser::make_TOK_DOT(); }
+","                 { return yy::parser::make_TOK_COMMA();}
+":"                 { return yy::parser::make_TOK_COLON(); }
+";"                 { return yy::parser::make_TOK_SEMICOLON(); }
+"("                 { return yy::parser::make_TOK_OPEN(); }
+")"                 { return yy::parser::make_TOK_CLOSE(); }
 
-"if"                { strcpy(lexeme, yytext); return TOK_IF; } 
-"then"              { strcpy(lexeme, yytext); return TOK_THEN; } 
-"else"              { strcpy(lexeme, yytext); return TOK_ELSE; } 
+"if"                { return yy::parser::make_TOK_IF(); } 
+"then"              { return yy::parser::make_TOK_THEN(); } 
+"else"              { return yy::parser::make_TOK_ELSE(); } 
 
-"while"             { strcpy(lexeme, yytext); return TOK_WHILE; } 
-"do"                { strcpy(lexeme, yytext); return TOK_DO; } 
+"while"             { return yy::parser::make_TOK_WHILE(); } 
+"do"                { return yy::parser::make_TOK_DO(); } 
 
-"+"                 { strcpy(lexeme, yytext); return TOK_ADD; }
-"-"                 { strcpy(lexeme, yytext); return TOK_SUB; }
-"*"                 { strcpy(lexeme, yytext); return TOK_MUL; }
-"div"               { strcpy(lexeme, yytext); return TOK_DIV; }
+"+"                 { return yy::parser::make_TOK_ADD(); }
+"-"                 { return yy::parser::make_TOK_SUB(); }
+"*"                 { return yy::parser::make_TOK_MUL(); }
+"div"               { return yy::parser::make_TOK_DIV(); }
 
-"="                 { strcpy(lexeme, yytext); return TOK_E; }
-"<>"                { strcpy(lexeme, yytext); return TOK_NE; }
-"<"                 { strcpy(lexeme, yytext); return TOK_L; }
-"<="                { strcpy(lexeme, yytext); return TOK_LE; }
-">"                 { strcpy(lexeme, yytext); return TOK_G; }
-">="                { strcpy(lexeme, yytext); return TOK_GE; }
+"="                 { return yy::parser::make_TOK_E(); }
+"<>"                { return yy::parser::make_TOK_NE(); }
+"<"                 { return yy::parser::make_TOK_L(); }
+"<="                { return yy::parser::make_TOK_LE(); }
+">"                 { return yy::parser::make_TOK_G(); }
+">="                { return yy::parser::make_TOK_GE(); }
 
-"or"                { strcpy(lexeme, yytext); return TOK_OR; }
-"and"               { strcpy(lexeme, yytext); return TOK_AND; }
-"not"               { strcpy(lexeme, yytext); return TOK_NOT; }
+"or"                { return yy::parser::make_TOK_OR(); }
+"and"               { return yy::parser::make_TOK_AND(); }
+"not"               { return yy::parser::make_TOK_NOT(); }
 
-"boolean"           { strcpy(lexeme, yytext); return TOK_BOOLEAN; }
-"integer"           { strcpy(lexeme, yytext); return TOK_INTEGER; } 
+"boolean"           { return yy::parser::make_TOK_BOOLEAN(); }
+"integer"           { return yy::parser::make_TOK_INTEGER(); } 
 
-"read"              { strcpy(lexeme, yytext); return TOK_READ; } 
-"write"             { strcpy(lexeme, yytext); return TOK_WRITE; }
+"read"              { return yy::parser::make_TOK_READ(); } 
+"write"             { return yy::parser::make_TOK_WRITE(); }
 
-"true"              { strcpy(lexeme, yytext); return TOK_TRUE; } 
-"false"             { strcpy(lexeme, yytext); return TOK_FALSE; }
+"true"              { return yy::parser::make_TOK_TRUE(); } 
+"false"             { return yy::parser::make_TOK_FALSE(); }
 
-{digit}+{id}        { strcpy(lexeme, yytext); return TOK_MALFORMED_NUM; }
-{digit}+            { strcpy(lexeme, yytext); return TOK_NUMBER; }
-{id}                { strcpy(lexeme, yytext); return TOK_ID; }
+{digit}+{id}        { return yy::parser::make_TOK_MALFORMED_NUM(); }
+{digit}+            { return yy::parser::make_TOK_NUMBER(strtod(yytext, NULL)); }
+{id}                { return yy::parser::make_TOK_ID(yytext); }
 {space}+            /* ignora espaços, tabs e quebras de linha */
-.                   { printf("Erro lexico!\n"); strcpy(lexeme, yytext); return TOK_ERROR; }
+.                   { printf("Lexical error!\n"); return yy::parser::make_TOK_ERROR(); }
 
 %%
-
-// Implementacao obrigatoria, pq eu tirei o %option noyywrap
-int yywrap(void) {
-    /* Retorna 1 para indicar "fim da entrada" */
-    return 1;
-}
