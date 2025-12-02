@@ -50,6 +50,11 @@ using namespace std;
 %type <shared_ptr<NoDeclaration>> var_declaration
 %type <vector<string>> identifier_list
 %type <VarType> type
+%type <vector<shared_ptr<NoSubroutine>>> subroutine_declaration_section
+%type <shared_ptr<NoSubroutine>> procedure_declaration function_declaration
+%type <vector<shared_ptr<NoDeclaration>>> optional_formal_parameters formal_parameters aux_formal_parameters
+%type <shared_ptr<NoDeclaration>> parameter_declaration
+%type <vector<shared_ptr<NoDeclaration>>> subroutine_block
 
 %nonassoc IF_PREC
 %nonassoc TOK_ELSE
@@ -63,13 +68,14 @@ using namespace std;
 program                                
     : TOK_PROGRAM TOK_ID TOK_SEMICOLON block TOK_DOT {
         $$ = $4;
+        $$->identifier = $2;
         root = $$;
     }
     ;
 
 block                                  
     : optional_var_declaration_section subroutine_declaration_section composite_command {
-        $$ = make_shared<NoProgram>($1);
+        $$ = make_shared<NoProgram>($1, $2);
     }
     ;
 
@@ -118,40 +124,68 @@ type
     ;
 
 subroutine_declaration_section
-    :
-    | subroutine_declaration_section procedure_declaration TOK_SEMICOLON
-    | subroutine_declaration_section function_declaration TOK_SEMICOLON
+    : {
+        $$ = vector<shared_ptr<NoSubroutine>>();
+    }
+    | subroutine_declaration_section procedure_declaration TOK_SEMICOLON {
+        $$ = $1;
+        $$.push_back($2);
+    }
+    | subroutine_declaration_section function_declaration TOK_SEMICOLON {
+        $$ = $1;
+        $$.push_back($2);
+    }
     ;
 
 procedure_declaration
-    : TOK_PROCEDURE TOK_ID optional_formal_parameters TOK_SEMICOLON subroutine_block
+    : TOK_PROCEDURE TOK_ID optional_formal_parameters TOK_SEMICOLON subroutine_block {
+        $$ = make_shared<NoSubroutine>($2, RoutType::PROCEDURE, VarType::INTEGER, $3, $5);
+    }
     ;
 
 function_declaration
-    : TOK_FUNCTION TOK_ID optional_formal_parameters TOK_COLON type TOK_SEMICOLON subroutine_block
+    : TOK_FUNCTION TOK_ID optional_formal_parameters TOK_COLON type TOK_SEMICOLON subroutine_block {
+        $$ = make_shared<NoSubroutine>($2, RoutType::FUNCTION, $5, $3, $7);
+    }
     ;
 
 subroutine_block
-    : optional_var_declaration_section composite_command
+    : optional_var_declaration_section composite_command {
+        $$ = $1;
+    }
     ;
 
 
 optional_formal_parameters
-    : formal_parameters
-    |
+    : formal_parameters {
+        $$ = $1;
+    }
+    | {
+        $$ = vector<shared_ptr<NoDeclaration>>();
+    }
     ;
 
 formal_parameters
-    : TOK_OPEN parameter_declaration aux_formal_parameters TOK_CLOSE
+    : TOK_OPEN parameter_declaration aux_formal_parameters TOK_CLOSE {
+        $$ = $3;
+        $$.push_back($2);
+    }
     ;
 
 aux_formal_parameters
-    : aux_formal_parameters TOK_SEMICOLON parameter_declaration
-    |
+    : aux_formal_parameters TOK_SEMICOLON parameter_declaration {
+        $$ = $1;
+        $$.push_back($3);
+    }
+    | {
+        $$ = vector<shared_ptr<NoDeclaration>>();
+    }
     ;
 
 parameter_declaration
-    : identifier_list TOK_COLON type
+    : identifier_list TOK_COLON type {
+        $$ = make_shared<NoDeclaration>($1, $3);
+    }
     ;
 
 composite_command

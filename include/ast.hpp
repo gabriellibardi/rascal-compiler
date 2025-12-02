@@ -7,6 +7,7 @@
 using namespace std;
 
 enum class VarType { INTEGER, BOOLEAN };
+enum class RoutType { PROCEDURE, FUNCTION };
 
 class No {
     public:
@@ -25,13 +26,29 @@ class NoDeclaration : public No {
         ~NoDeclaration();
 };
 
-class NoProgram : public No {
+class NoSubroutine : public No {
     public:
+        string identifier;
+        RoutType rout_type;
+        VarType return_type;
+        vector<shared_ptr<NoDeclaration>> formal_parameters;
         vector<shared_ptr<NoDeclaration>> declaration_section;
 
         void print() override;
 
-        NoProgram(vector<shared_ptr<NoDeclaration>> decl_section);
+        NoSubroutine(string identifier, RoutType rout_type, VarType return_type, vector<shared_ptr<NoDeclaration>> formal_param, vector<shared_ptr<NoDeclaration>> decl_section);
+        ~NoSubroutine();
+};
+
+class NoProgram : public No {
+    public:
+        string identifier;
+        vector<shared_ptr<NoDeclaration>> declaration_section;
+        vector<shared_ptr<NoSubroutine>> subroutine_section;
+
+        void print() override;
+
+        NoProgram(vector<shared_ptr<NoDeclaration>> decl_section, vector<shared_ptr<NoSubroutine>> rout_section);
         ~NoProgram();
 };
 
