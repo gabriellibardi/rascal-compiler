@@ -6,18 +6,32 @@
 
 using namespace std;
 
+enum class VarType { INTEGER, BOOLEAN };
+
 class No {
     public:
         virtual ~No();
         virtual void print();
 };
 
-class NoProgram : public No {
+class NoDeclaration : public No {
     public:
-        string test;
+        vector<string> identifier_list;
+        VarType var_type;
+
         void print() override;
 
-        NoProgram(string test);
+        NoDeclaration(vector<string> id_list, VarType var_type);
+        ~NoDeclaration();
+};
+
+class NoProgram : public No {
+    public:
+        vector<shared_ptr<NoDeclaration>> declaration_section;
+
+        void print() override;
+
+        NoProgram(vector<shared_ptr<NoDeclaration>> decl_section);
         ~NoProgram();
 };
 

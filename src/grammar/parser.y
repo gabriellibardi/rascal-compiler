@@ -37,13 +37,19 @@ using namespace std;
 %token TOK_PROCEDURE TOK_FUNCTION TOK_DOT TOK_COMMA TOK_COLON TOK_SEMICOLON
 %token TOK_OPEN TOK_CLOSE TOK_IF TOK_THEN TOK_ELSE TOK_WHILE TOK_DO
 %token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_E TOK_NE TOK_L TOK_LE TOK_G TOK_GE
-%token TOK_OR TOK_AND TOK_NOT TOK_BOOLEAN TOK_INTEGER TOK_READ TOK_WRITE
+%token TOK_OR TOK_AND TOK_NOT TOK_READ TOK_WRITE
 %token TOK_TRUE TOK_FALSE
 %token TOK_ERROR TOK_MALFORMED_NUM
+
 %token <int> TOK_NUMBER
 %token <string> TOK_ID
+%token <VarType> TOK_BOOLEAN TOK_INTEGER
 
-%type <shared_ptr<NoProgram>> program
+%type <shared_ptr<NoProgram>> program block
+%type <vector<shared_ptr<NoDeclaration>>> optional_var_declaration_section var_declaration_section
+%type <shared_ptr<NoDeclaration>> var_declaration
+%type <vector<string>> identifier_list
+%type <VarType> type
 
 %nonassoc IF_PREC
 %nonassoc TOK_ELSE
@@ -56,37 +62,59 @@ using namespace std;
 
 program                                
     : TOK_PROGRAM TOK_ID TOK_SEMICOLON block TOK_DOT {
-        $$ = make_shared<NoProgram>("AST root!");
+        $$ = $4;
         root = $$;
     }
     ;
 
 block                                  
-    : optional_var_declaration_section subroutine_declaration_section composite_command
+    : optional_var_declaration_section subroutine_declaration_section composite_command {
+        $$ = make_shared<NoProgram>($1);
+    }
     ;
 
 optional_var_declaration_section
-    : var_declaration_section
-    |
+    : var_declaration_section {
+        $$ = $1;
+    }
+    | {
+        $$ = vector<shared_ptr<NoDeclaration>>();
+    }
     ;
 
 var_declaration_section
-    : TOK_VAR var_declaration TOK_SEMICOLON
-    | var_declaration_section var_declaration TOK_SEMICOLON
+    : TOK_VAR var_declaration TOK_SEMICOLON {
+        $$ = {$2};
+    }
+    | var_declaration_section var_declaration TOK_SEMICOLON {
+        $$ = $1;
+        $$.push_back($2);
+    }
     ;
 
 var_declaration
-    : identifier_list TOK_COLON type
+    : identifier_list TOK_COLON type {
+        $$ = make_shared<NoDeclaration>($1, $3);
+    }
     ;
 
 identifier_list
-    : TOK_ID
-    | identifier_list TOK_COMMA TOK_ID
+    : TOK_ID {
+        $$ = {$1};
+    }
+    | identifier_list TOK_COMMA TOK_ID {
+        $$ = $1;
+        $$.push_back($3);
+    }
     ;
 
 type
-    : TOK_BOOLEAN
-    | TOK_INTEGER
+    : TOK_BOOLEAN {
+        $$ = $1;
+    }
+    | TOK_INTEGER {
+        $$ = $1;
+    }
     ;
 
 subroutine_declaration_section

@@ -1,5 +1,6 @@
 %{
 #include "parser.tab.hpp"
+#include "ast.hpp"
 #include "grammar_aux.hpp"
 %}
 
@@ -50,8 +51,8 @@ space      [ \t\n]
 "and"               { return yy::parser::make_TOK_AND(); }
 "not"               { return yy::parser::make_TOK_NOT(); }
 
-"boolean"           { return yy::parser::make_TOK_BOOLEAN(); }
-"integer"           { return yy::parser::make_TOK_INTEGER(); } 
+"boolean"           { return yy::parser::make_TOK_BOOLEAN(VarType::BOOLEAN); }
+"integer"           { return yy::parser::make_TOK_INTEGER(VarType::INTEGER); } 
 
 "read"              { return yy::parser::make_TOK_READ(); } 
 "write"             { return yy::parser::make_TOK_WRITE(); }
