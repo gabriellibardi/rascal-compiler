@@ -1,7 +1,7 @@
 #include "rascal.hpp"
 #include "ast.hpp"
 #include "parser.tab.hpp"
-#include <stdio.h>
+#include <iostream>
 
 using namespace std;
 
@@ -11,9 +11,10 @@ int main (int argc, char** argv) {
    if (root == nullptr) {
       cout << "AST root is null!" << endl;
    } else if (success == 0) {
+      cout << "parsing succeded" << endl; 
       root->print();
    } else {
-      cout << "parsing insuccessfull" << endl;
+      cout << "parsing unsuccessfull" << endl;
    }
    printf("\n");
 }

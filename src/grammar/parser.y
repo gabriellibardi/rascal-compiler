@@ -1,4 +1,6 @@
-%require "3.2"
+%skeleton "lalr1.cc"
+%require "3.7.4"
+
 %language "c++"
 
 %define api.value.type variant
@@ -19,14 +21,14 @@
     using namespace std;
 }
 
+%code {
+    #include "grammar_aux.hpp"
+}
+
 %{
-#undef YY_DECL
-#define YY_DECL yy::parser::symbol_type yylex()
 #include "ast.hpp"
 
 using namespace std;
-
-int yylex(void);
 %}
 
 %define api.token.prefix {TOK_}

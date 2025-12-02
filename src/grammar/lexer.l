@@ -1,7 +1,6 @@
 %{
-#undef YY_DECL
-#define YY_DECL yy::parser::symbol_type yylex()
 #include "parser.tab.hpp"
+#include "grammar_aux.hpp"
 %}
 
 %option noyywrap yylineno batch
