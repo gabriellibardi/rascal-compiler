@@ -74,6 +74,46 @@ NoSubroutine::NoSubroutine(string identifier, RoutType rout_type, VarType return
 
 NoSubroutine::~NoSubroutine() = default;
 
+void NoUnaryExpr::print() { }
+
+NoUnaryExpr::NoUnaryExpr(shared_ptr<NoExpression> operand, Op op) {
+    this->operand = operand;
+    this->op = op;
+}
+
+void NoBinExpr::print() { }
+
+NoBinExpr::NoBinExpr(shared_ptr<NoExpression> left, shared_ptr<NoExpression> right, Op op) {
+    this->left = left;
+    this->right = right;
+    this->op = op;
+}
+
+void NoVarExpr::print() { }
+
+NoVarExpr::NoVarExpr(string identifier) {
+    this->identifier = identifier;
+}
+
+void NoLiteralExpr::print() { }
+
+NoLiteralExpr::NoLiteralExpr(int num) {
+    this->num = num;
+    this->type = VarType::INTEGER;
+}
+
+NoLiteralExpr::NoLiteralExpr(bool logic) {
+    this->logic = logic;
+    this->type = VarType::BOOLEAN; 
+}
+
+void NoCallExpr::print() { }
+
+NoCallExpr::NoCallExpr(string identifier, vector<shared_ptr<NoExpression>> expression_list) {
+    this->identifier = identifier;
+    this->expression_list = expression_list;
+}
+
 void NoProgram::print() {
     cout << "(program " << identifier << " ";
     cout << "(var";
