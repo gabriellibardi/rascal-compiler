@@ -31,7 +31,7 @@ $(F_OUT): $(F_IN) $(B_HEADER) | $(GEN)
 	flex -o $(F_OUT) $(F_IN)
 
 $(EXE): $(B_OUT) $(F_OUT) $(AST) $(RASCAL) | $(BUILD)
-	g++ $(B_OUT) $(F_OUT) $(AST) $(RASCAL) -Wall -o $(EXE) -I$(SRC) -I$(GEN) -I$(INCLUDE)
+	g++ $(B_OUT) $(F_OUT) $(AST) $(RASCAL) -Wall -o $(EXE) -I$(SRC) -I$(GEN) -I$(INCLUDE) -std=c++20
 
 clean:
 	rm -rf $(BUILD)

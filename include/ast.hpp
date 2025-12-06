@@ -16,7 +16,7 @@ enum class Op {
     OR, AND, NOT
 };
 
-using AuxVec = vector<std::map<string, std::any>>;
+using AuxMap = map<string, any>;
 
 class No {
     public:

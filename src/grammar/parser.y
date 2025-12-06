@@ -36,7 +36,8 @@ using namespace std;
 %token TOK_PROGRAM TOK_BEGIN TOK_END TOK_ASSIGNMENT TOK_VAR
 %token TOK_PROCEDURE TOK_FUNCTION TOK_DOT TOK_COMMA TOK_COLON TOK_SEMICOLON
 %token TOK_OPEN TOK_CLOSE TOK_IF TOK_THEN TOK_ELSE TOK_WHILE TOK_DO
-%token TOK_ADD TOK_SUB TOK_MUL TOK_DIV TOK_E TOK_NE TOK_L TOK_LE TOK_G TOK_GE
+%token TOK_E TOK_NE TOK_L TOK_LE TOK_G TOK_GE
+%token TOK_ADD TOK_SUB TOK_MUL TOK_DIV
 %token TOK_OR TOK_AND TOK_NOT TOK_READ TOK_WRITE
 %token TOK_TRUE TOK_FALSE
 %token TOK_ERROR TOK_MALFORMED_NUM
@@ -55,6 +56,11 @@ using namespace std;
 %type <vector<shared_ptr<NoDeclaration>>> optional_formal_parameters formal_parameters aux_formal_parameters
 %type <shared_ptr<NoDeclaration>> parameter_declaration
 %type <vector<shared_ptr<NoDeclaration>>> subroutine_block
+%type <vector<shared_ptr<NoExpression>>> expression_list aux_expression_list optional_expression_list
+%type <shared_ptr<NoExpression>> expression simple_expression term factor variable logic function_call
+%type <shared_ptr<AuxMap>> aux_expression
+%type <vector<AuxMap>> aux_simple_expression aux_term
+%type <Op> relation
 
 %nonassoc IF_PREC
 %nonassoc TOK_ELSE
@@ -216,8 +222,12 @@ procedure_call
     ;
 
 optional_expression_list
-    : expression_list
-    |
+    : expression_list {
+        $$ = $1;
+    }
+    | {
+        $$ = vector<shared_ptr<NoExpression>>();
+    }
     ;
 
 conditional
@@ -238,75 +248,186 @@ write
     ;
 
 expression_list
-    : expression aux_expression_list
+    : expression aux_expression_list {
+        $$ = {$1};
+        for (shared_ptr<NoExpression> aux: $2) {
+            $$.push_back(aux);
+        }
+    }
     ;
 
 aux_expression_list
-    : aux_expression_list TOK_COMMA expression
-    |
+    : aux_expression_list TOK_COMMA expression {
+        $$ = $1;
+        $$.push_back($3);
+    }
+    | {
+        $$ = vector<shared_ptr<NoExpression>>();
+    }
     ;
 
 expression
-    : simple_expression aux_expression
+    : simple_expression aux_expression {
+        $$ = $1;
+        if ($2 != nullptr) {
+            shared_ptr<NoExpression> expr = any_cast<shared_ptr<NoExpression>>((*$2)["expression"]);
+            Op op = any_cast<Op>((*$2)["op"]);
+            $$ = make_shared<NoBinExpr>($$, expr, op);
+        }
+    }
     ;
 
 aux_expression
-    : relation simple_expression
-    |
+    : relation simple_expression {
+        $$ = make_shared<AuxMap>();
+        (*$$)["op"] = $1;
+        (*$$)["expression"] = $2;
+    }
+    | {
+        $$ = nullptr;
+    }
     ;
 
 relation
-    : TOK_E
-    | TOK_NE
-    | TOK_L
-    | TOK_LE
-    | TOK_G
-    | TOK_GE
+    : TOK_E {
+        $$ = Op::E;
+    }
+    | TOK_NE {
+        $$ = Op::NE;
+    }
+    | TOK_L {
+        $$ = Op::L;
+    }
+    | TOK_LE {
+        $$ = Op::LE;
+    }
+    | TOK_G {
+        $$ = Op::G;
+    }
+    | TOK_GE {
+        $$ = Op::GE;
+    }
     ;
 
 simple_expression
-    : term aux_simple_expression
+    : term aux_simple_expression {
+        $$ = $1;
+        for (AuxMap aux: $2) {
+            shared_ptr<NoExpression> expr = any_cast<shared_ptr<NoExpression>>(aux["expression"]);
+            Op op = any_cast<Op>(aux["op"]);
+            $$ = make_shared<NoBinExpr>($$, expr, op);
+        }
+    }
     ;
 
 aux_simple_expression
-    : aux_simple_expression TOK_ADD term
-    | aux_simple_expression TOK_SUB term
-    | aux_simple_expression TOK_OR term
-    |
+    : aux_simple_expression TOK_ADD term {
+        $$ = $1;
+        AuxMap aux = AuxMap();
+        aux["op"] = Op::ADD;
+        aux["expression"] = $3;
+        $$.push_back(aux);
+    }
+    | aux_simple_expression TOK_SUB term {
+        $$ = $1;
+        AuxMap aux = AuxMap();
+        aux["op"] = Op::SUB;
+        aux["expression"] = $3;
+        $$.push_back(aux);
+    }
+    | aux_simple_expression TOK_OR term {
+        $$ = $1;
+        AuxMap aux = AuxMap();
+        aux["op"] = Op::OR;
+        aux["expression"] = $3;
+        $$.push_back(aux);
+    }
+    | {
+        $$ = vector<AuxMap>();
+    }
     ;
 
 term
-    : factor aux_term
+    : factor aux_term {
+        $$ = $1;
+        for (AuxMap aux: $2) {
+            shared_ptr<NoExpression> expr = any_cast<shared_ptr<NoExpression>>(aux["expression"]);
+            Op op = any_cast<Op>(aux["op"]);
+            $$ = make_shared<NoBinExpr>($$, expr, op);
+        }
+    }
     ;
 
 aux_term
-    : aux_term TOK_MUL factor
-    | aux_term TOK_DIV factor
-    | aux_term TOK_AND factor
-    |
+    : aux_term TOK_MUL factor {
+        $$ = $1;
+        AuxMap aux = AuxMap();
+        aux["op"] = Op::MUL;
+        aux["expression"] = $3;
+        $$.push_back(aux);
+    }
+    | aux_term TOK_DIV factor {
+        $$ = $1;
+        AuxMap aux = AuxMap();
+        aux["op"] = Op::DIV;
+        aux["expression"] = $3;
+        $$.push_back(aux);
+    }
+    | aux_term TOK_AND factor {
+        $$ = $1;
+        AuxMap aux = AuxMap();
+        aux["op"] = Op::AND;
+        aux["expression"] = $3;
+        $$.push_back(aux);
+    }
+    | {
+        $$ = vector<AuxMap>();
+    }
     ;
 
 factor
-    : variable
-    | TOK_NUMBER
-    | logic
-    | function_call
-    | TOK_OPEN expression TOK_CLOSE
-    | TOK_NOT factor
-    | TOK_SUB factor
+    : variable {
+        $$ = $1;
+    }
+    | TOK_NUMBER {
+        $$ = make_shared<NoLiteralExpr>($1);
+    }
+    | logic {
+        $$ = $1;
+    }
+    | function_call {
+        $$ = $1;
+    }
+    | TOK_OPEN expression TOK_CLOSE {
+        $$ = $2;
+    }
+    | TOK_NOT factor {
+        $$ = make_shared<NoUnaryExpr>($2, Op::NOT);
+    }
+    | TOK_SUB factor {
+        $$ = make_shared<NoUnaryExpr>($2, Op::SUB);
+    }
     ;
 
 variable
-    : TOK_ID
+    : TOK_ID {
+        $$ = make_shared<NoVarExpr>($1);
+    }
     ;
 
 logic
-    : TOK_FALSE
-    | TOK_TRUE
+    : TOK_FALSE {
+        $$ = make_shared<NoLiteralExpr>(false);
+    }
+    | TOK_TRUE {
+        $$ = make_shared<NoLiteralExpr>(true);
+    }
     ;
 
 function_call
-    : TOK_ID TOK_OPEN optional_expression_list TOK_CLOSE
+    : TOK_ID TOK_OPEN optional_expression_list TOK_CLOSE {
+        $$ = make_shared<NoCallExpr>($1, $3);
+    }
     ;
 
 %%
