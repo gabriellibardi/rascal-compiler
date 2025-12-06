@@ -74,7 +74,7 @@ class NoVarExpr : public NoExpression {
     public:
         string identifier;
 
-        NoVarExpr(strin identifier);
+        NoVarExpr(string identifier);
         ~NoVarExpr();
 };
 
@@ -94,6 +94,83 @@ class NoCallExpr : public NoExpression {
         vector<shared_ptr<NoExpression>> expression_list;
 
         NoCallExpr(string identifier);
+};
+
+class NoCommand : public No {
+    public:
+        virtual ~NoCommand() = default;
+};
+
+class NoCompositeCommand : public NoCommand {
+    public:
+        vector<shared_ptr<NoCommand>> command_list;
+
+        NoCompositeCommand(vector<shared_ptr<NoCommand>> cmds);
+        
+        void print() override;
+};
+
+class NoAssignment : public NoCommand {
+    public:
+        string identifier;
+        shared_ptr<NoExpression> expr;
+
+        NoAssignment(string id, shared_ptr<NoExpression> expr);
+        
+        void print() override;
+};
+
+class NoProcedureCall : public NoCommand {
+    public:
+        string identifier;
+        vector<shared_ptr<NoExpression>> expression_list;
+
+        NoProcedureCall(string id);
+        NoProcedureCall(string id, vector<shared_ptr<NoExpression>> exprs);
+    
+        void print() override;
+};
+
+class NoConditional : public NoCommand {
+    public:
+        shared_ptr<NoExpression> condition;
+        shared_ptr<NoCommand> then_cmd;
+        shared_ptr<NoCommand> else_cmd;
+
+        NoConditional(shared_ptr<NoExpression> cond,
+                      shared_ptr<NoCommand> then_cmd,
+                      shared_ptr<NoCommand> else_cmd = nullptr);
+        
+        void print() override;
+};
+
+class NoRepetition : public NoCommand {
+    public:
+        shared_ptr<NoExpression> condition;
+        shared_ptr<NoCommand> body;
+
+        NoRepetition(shared_ptr<NoExpression> cond,
+                     shared_ptr<NoCommand> body);
+    
+        void print() override;
+};
+
+class NoRead : public NoCommand {
+    public:
+        vector<string> identifier_list;
+
+        NoRead(vector<string> list);
+        
+        void print() override;
+};
+
+class NoWrite : public NoCommand {
+    public:
+        vector<shared_ptr<NoExpression>> expression_list;
+
+        NoWrite(vector<shared_ptr<NoExpression>> list);
+    
+        void print() override;
 };
 
 class NoProgram : public No {

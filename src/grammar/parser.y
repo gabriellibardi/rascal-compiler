@@ -55,6 +55,8 @@ using namespace std;
 %type <vector<shared_ptr<NoDeclaration>>> optional_formal_parameters formal_parameters aux_formal_parameters
 %type <shared_ptr<NoDeclaration>> parameter_declaration
 %type <vector<shared_ptr<NoDeclaration>>> subroutine_block
+%type <shared_ptr<NoCommand>> command assignment procedure_call conditional repetition read write composite_command
+%type <vector<shared_ptr<NoCommand>>> aux_composite_command
 
 %nonassoc IF_PREC
 %nonassoc TOK_ELSE
@@ -76,6 +78,7 @@ program
 block                                  
     : optional_var_declaration_section subroutine_declaration_section composite_command {
         $$ = make_shared<NoProgram>($1, $2);
+        $$->body = $3;
     }
     ;
 
@@ -189,12 +192,22 @@ parameter_declaration
     ;
 
 composite_command
-    : TOK_BEGIN command aux_composite_command TOK_END
+    : TOK_BEGIN command aux_composite_command TOK_END {
+        vector<shared_ptr<NoCommand>> cmds;
+        cmds.push_back($2);
+        for (auto &c : $3) cmds.push_back(c);
+        $$ = make_shared<NoCompositeCommand>(cmds);
+    }
     ;
 
 aux_composite_command
-    : aux_composite_command TOK_SEMICOLON command
-    |
+    : aux_composite_command TOK_SEMICOLON command {
+        $$ = $1;
+        $$.push_back($3);
+    }
+    | {
+        $$ = vector<shared_ptr<NoCommand>>();
+    }
     ;
 
 command
@@ -208,11 +221,15 @@ command
     ;
 
 assignment
-    : TOK_ID TOK_ASSIGNMENT expression
+    : TOK_ID TOK_ASSIGNMENT expression {
+        $$ = make_shared<NoAssignment>($1, $3);
+    }
     ;
 
 procedure_call
-    : TOK_ID TOK_OPEN optional_expression_list TOK_CLOSE
+    : TOK_ID TOK_OPEN optional_expression_list TOK_CLOSE {
+        $$ = make_shared<NoProcedureCall>($1, $3);
+    }
     ;
 
 optional_expression_list
@@ -221,20 +238,30 @@ optional_expression_list
     ;
 
 conditional
-    : TOK_IF expression TOK_THEN command %prec IF_PREC
-    | TOK_IF expression TOK_THEN command TOK_ELSE command
+    : TOK_IF expression TOK_THEN command %prec IF_PREC {
+        $$ = make_shared<NoConditional>($2, $4);
+    }
+    | TOK_IF expression TOK_THEN command TOK_ELSE command {
+        $$ = make_shared<NoConditional>($2, $4, $6);
+    }
     ;
 
 repetition
-    : TOK_WHILE expression TOK_DO command
+    : TOK_WHILE expression TOK_DO command {
+        $$ = make_shared<NoRepetition>($2, $4);
+    }
     ;
 
 read
-    : TOK_READ TOK_OPEN identifier_list TOK_CLOSE
+    : TOK_READ TOK_OPEN identifier_list TOK_CLOSE {
+        $$ = make_shared<NoRead>($3);
+    }
     ;
 
 write
-    : TOK_WRITE TOK_OPEN expression_list TOK_CLOSE
+    : TOK_WRITE TOK_OPEN expression_list TOK_CLOSE {
+        $$ = make_shared<NoWrite>($3);
+    }
     ;
 
 expression_list
