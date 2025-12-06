@@ -129,6 +129,35 @@ void NoProgram::print() {
     cout << ")";
 }
 
+NoUnaryExpr::NoUnaryExpr(shared_ptr<NoExpression> operand, Op op) {
+    this->operand = operand;
+    this->op = op;
+}
+
+NoBinExpr::NoBinExpr(shared_ptr<NoExpression> left, shared_ptr<NoExpression> right, Op op) {
+    this->left = left;
+    this->right = right;
+    this->op = op;
+}
+
+NoVarExpr::NoVarExpr(string identifier) {
+    this->identifier = identifier;
+}
+
+NoLiteralExpr::NoLiteralExpr(int num) {
+    this->num = num;
+    this->type = VarType::INTEGER;
+}
+
+NoLiteralExpr::NoLiteralExpr(bool logic) {
+    this->logic = logic;
+    this->type = VarType::BOOLEAN; 
+}
+
+NoCallExpr::NoCallExpr(string identifier) {
+    this->identifier = identifier;
+}
+
 NoProgram::NoProgram(vector<shared_ptr<NoDeclaration>> decl_section, vector<shared_ptr<NoSubroutine>> rout_section) {
     this->declaration_section = decl_section;
     this->subroutine_section = rout_section;
