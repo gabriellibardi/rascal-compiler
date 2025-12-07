@@ -186,6 +186,108 @@ NoCallExpr::NoCallExpr(string identifier, vector<shared_ptr<NoExpression>> expre
     this->expression_list = expression_list;
 }
 
+NoCompositeCommand::NoCompositeCommand(vector<shared_ptr<NoCommand>> cmds) {
+    this->command_list = cmds;
+}
+
+void NoCompositeCommand::print() {
+    cout << "(begin";
+    for (auto &cmd : command_list) {
+        cout << " ";
+        cmd->print();
+    }
+    cout << " end)";
+}
+
+NoAssignment::NoAssignment(string id, shared_ptr<NoExpression> expr) {
+    this->identifier = id;
+    this->expr = expr;
+}
+
+void NoAssignment::print() {
+    cout << "(" << identifier << " := ";
+    expr->print();
+    cout << ")";
+}
+
+NoProcedureCall::NoProcedureCall(string id) {
+    this->identifier = id;
+}
+
+NoProcedureCall::NoProcedureCall(string id, vector<shared_ptr<NoExpression>> exprs) {
+    this->identifier = id;
+    this->expression_list = exprs;
+}
+
+void NoProcedureCall::print() {
+    cout << "(call " << identifier;
+    for (auto &expr : expression_list) {
+        cout << " ";
+        expr->print();
+    }
+    cout << ")";
+}
+
+NoConditional::NoConditional(shared_ptr<NoExpression> cond,
+                             shared_ptr<NoCommand> then_cmd,
+                             shared_ptr<NoCommand> else_cmd) {
+    this->condition = cond;
+    this->then_cmd = then_cmd;
+    this->else_cmd = else_cmd;
+}
+
+void NoConditional::print() {
+    cout << "(if ";
+    condition->print();
+    cout << " then ";
+    then_cmd->print();
+    if (else_cmd) {
+        cout << " else ";
+        else_cmd->print();
+    }
+    cout << ")";
+}
+
+NoRepetition::NoRepetition(shared_ptr<NoExpression> cond,
+                           shared_ptr<NoCommand> body) {
+    this->condition = cond;
+    this->body = body;
+}
+
+void NoRepetition::print() {
+    cout << "(while ";
+    condition->print();
+    cout << " do ";
+    body->print();
+    cout << ")";
+}
+
+NoRead::NoRead(vector<string> list) {
+    this->identifier_list = list;
+}
+
+void NoRead::print() {
+    cout << "(read";
+    for (auto &id : identifier_list) {
+        cout << " " << id;
+    }
+    cout << ")";
+}
+
+NoWrite::NoWrite(vector<shared_ptr<NoExpression>> list) {
+    this->expression_list = list;
+}
+
+void NoWrite::print() {
+    cout << "(write";
+    for (auto &expr : expression_list) {
+        cout << " ";
+        expr->print();
+    }
+    cout << ")";
+}
+
+
 void NoProgram::print() {
     cout << "(program " << identifier << " ";
     cout << "(var";
