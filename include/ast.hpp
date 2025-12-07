@@ -18,6 +18,8 @@ enum class Op {
 
 using AuxMap = map<string, any>;
 
+string op_string(Op op);
+
 class No {
     public:
         virtual ~No();

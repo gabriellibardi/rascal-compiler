@@ -5,6 +5,50 @@ using namespace std;
 
 shared_ptr<NoProgram> root = nullptr;
 
+string op_string(Op op) {
+    switch (op) {
+    case Op::E:
+        return "=";
+        break;
+    case Op::NE:
+        return "<>";
+        break;
+    case Op::L:
+        return "<";
+        break;
+    case Op::LE:
+        return "<=";
+        break;
+    case Op::G:
+        return ">";
+        break;
+    case Op::GE:
+        return ">=";
+        break;
+    case Op::ADD:
+        return "+";
+        break;
+    case Op::SUB:
+        return "-";
+        break;
+    case Op::MUL:
+        return "*";
+        break;
+    case Op::DIV:
+        return "div";
+        break;
+    case Op::OR:
+        return "or";
+        break;
+    case Op::AND:
+        return "and";
+        break;
+    case Op::NOT:
+        return "not";
+        break;
+    }
+}
+
 No::~No() = default;
 void No::print() { cout << "No::print()" << endl; }
 
@@ -74,14 +118,24 @@ NoSubroutine::NoSubroutine(string identifier, RoutType rout_type, VarType return
 
 NoSubroutine::~NoSubroutine() = default;
 
-void NoUnaryExpr::print() { }
+void NoUnaryExpr::print() {
+    cout << "(" << op_string(op) << " ";
+    operand->print();
+    cout << ")";
+}
 
 NoUnaryExpr::NoUnaryExpr(shared_ptr<NoExpression> operand, Op op) {
     this->operand = operand;
     this->op = op;
 }
 
-void NoBinExpr::print() { }
+void NoBinExpr::print() {
+    cout << "(" << op_string(op) << " ";
+    left->print();
+    cout << " ";
+    right->print();
+    cout << ")";
+}
 
 NoBinExpr::NoBinExpr(shared_ptr<NoExpression> left, shared_ptr<NoExpression> right, Op op) {
     this->left = left;
@@ -89,13 +143,24 @@ NoBinExpr::NoBinExpr(shared_ptr<NoExpression> left, shared_ptr<NoExpression> rig
     this->op = op;
 }
 
-void NoVarExpr::print() { }
+void NoVarExpr::print() {
+    cout << identifier;
+}
 
 NoVarExpr::NoVarExpr(string identifier) {
     this->identifier = identifier;
 }
 
-void NoLiteralExpr::print() { }
+void NoLiteralExpr::print() {
+    switch (type) {
+    case VarType::INTEGER:
+        cout << num;
+        break;
+    case VarType::BOOLEAN:
+        cout << logic;
+        break;
+    }
+}
 
 NoLiteralExpr::NoLiteralExpr(int num) {
     this->num = num;
@@ -107,7 +172,14 @@ NoLiteralExpr::NoLiteralExpr(bool logic) {
     this->type = VarType::BOOLEAN; 
 }
 
-void NoCallExpr::print() { }
+void NoCallExpr::print() {
+    cout << "(call " << identifier;
+    for (shared_ptr<NoExpression> expr: expression_list) {
+        cout << " ";
+        expr->print();
+    }
+    cout << ")";
+}
 
 NoCallExpr::NoCallExpr(string identifier, vector<shared_ptr<NoExpression>> expression_list) {
     this->identifier = identifier;
