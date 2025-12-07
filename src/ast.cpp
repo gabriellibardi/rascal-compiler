@@ -303,9 +303,10 @@ void NoProgram::print() {
     cout << ")";
 }
 
-NoProgram::NoProgram(vector<shared_ptr<NoDeclaration>> decl_section, vector<shared_ptr<NoSubroutine>> rout_section) {
+NoProgram::NoProgram(vector<shared_ptr<NoDeclaration>> decl_section, vector<shared_ptr<NoSubroutine>> rout_section, shared_ptr<NoCommand> body) {
     this->declaration_section = decl_section;
     this->subroutine_section = rout_section;
+    this->body = body;
 }
 
 NoProgram::~NoProgram() = default;

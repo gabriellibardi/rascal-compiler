@@ -83,8 +83,7 @@ program
 
 block                                  
     : optional_var_declaration_section subroutine_declaration_section composite_command {
-        $$ = make_shared<NoProgram>($1, $2);
-        $$->body = $3;
+        $$ = make_shared<NoProgram>($1, $2, $3);
     }
     ;
 
