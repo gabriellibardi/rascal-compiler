@@ -300,6 +300,8 @@ void NoProgram::print() {
         cout << " ";
         rout->print();
     }
+    cout << " ";
+    body->print();
     cout << ")";
 }
 
