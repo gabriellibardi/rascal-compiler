@@ -7,7 +7,7 @@
 
 using namespace std;
 
-enum class SymbolCategory { VARIABLE, PARAMETER, PROCEDURE, FUNCTION};
+enum class SymbolCategory { VARIABLE, PARAMETER, PROCEDURE, FUNCTION, PROGRAM};
 enum class Scope { GLOBAL, LOCAL };
 
 class SymbolEntry {
@@ -55,6 +55,12 @@ class FuncEntry : public SymbolEntry {
 
         FuncEntry(string name, vector<shared_ptr<ParamEntry>> param_list, VarType return_type);
         ~FuncEntry() = default;
+};
+
+class ProgramEntry : public SymbolEntry {
+    public:
+        ProgramEntry(string name);
+        ~ProgramEntry() = default;
 };
 
 class SymbolTable {
