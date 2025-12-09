@@ -18,10 +18,14 @@ enum class Op {
 
 using AuxMap = map<string, any>;
 
+class Visitor;
+
 string op_string(Op op);
 
 class No {
     public:
+        virtual void accept(Visitor* visitor);
+
         virtual ~No();
         virtual void print();
 };
@@ -32,6 +36,7 @@ class NoDeclaration : public No {
         VarType var_type;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoDeclaration(vector<string> id_list, VarType var_type);
         ~NoDeclaration();
@@ -46,6 +51,7 @@ class NoSubroutine : public No {
         vector<shared_ptr<NoDeclaration>> declaration_section;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoSubroutine(string identifier, RoutType rout_type, VarType return_type, vector<shared_ptr<NoDeclaration>> formal_param, vector<shared_ptr<NoDeclaration>> decl_section);
         ~NoSubroutine();
@@ -64,6 +70,7 @@ class NoUnaryExpr : public NoExpression {
         Op op;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoUnaryExpr(shared_ptr<NoExpression> operand, Op op);
         ~NoUnaryExpr() = default;
@@ -75,6 +82,7 @@ class NoBinExpr : public NoExpression {
         Op op;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoBinExpr(shared_ptr<NoExpression> left, shared_ptr<NoExpression> right, Op op);
         ~NoBinExpr() = default;
@@ -85,6 +93,7 @@ class NoVarExpr : public NoExpression {
         string identifier;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoVarExpr(string identifier);
         ~NoVarExpr() = default;
@@ -97,6 +106,7 @@ class NoLiteralExpr : public NoExpression {
         VarType type;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoLiteralExpr(int num);
         NoLiteralExpr(bool logic);
@@ -109,6 +119,7 @@ class NoCallExpr : public NoExpression {
         vector<shared_ptr<NoExpression>> expression_list;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoCallExpr(string identifier, vector<shared_ptr<NoExpression>> expression_list);
         ~NoCallExpr() = default;
@@ -126,6 +137,7 @@ class NoCompositeCommand : public NoCommand {
         NoCompositeCommand(vector<shared_ptr<NoCommand>> cmds);
         
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoAssignment : public NoCommand {
@@ -136,6 +148,7 @@ class NoAssignment : public NoCommand {
         NoAssignment(string id, shared_ptr<NoExpression> expr);
         
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoProcedureCall : public NoCommand {
@@ -147,6 +160,7 @@ class NoProcedureCall : public NoCommand {
         NoProcedureCall(string id, vector<shared_ptr<NoExpression>> exprs);
     
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoConditional : public NoCommand {
@@ -160,6 +174,7 @@ class NoConditional : public NoCommand {
                       shared_ptr<NoCommand> else_cmd = nullptr);
         
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoRepetition : public NoCommand {
@@ -171,6 +186,7 @@ class NoRepetition : public NoCommand {
                      shared_ptr<NoCommand> body);
     
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoRead : public NoCommand {
@@ -180,6 +196,7 @@ class NoRead : public NoCommand {
         NoRead(vector<string> list);
         
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoWrite : public NoCommand {
@@ -189,6 +206,7 @@ class NoWrite : public NoCommand {
         NoWrite(vector<shared_ptr<NoExpression>> list);
     
         void print() override;
+        void accept(Visitor* visitor) override;
 };
 
 class NoProgram : public No {
@@ -199,9 +217,35 @@ class NoProgram : public No {
         shared_ptr<NoCommand> body;
 
         void print() override;
+        void accept(Visitor* visitor) override;
 
         NoProgram(vector<shared_ptr<NoDeclaration>> decl_section, vector<shared_ptr<NoSubroutine>> rout_section, shared_ptr<NoCommand> body);
         ~NoProgram();
+};
+
+class SymbolTableManager;
+
+class Visitor {
+    protected:
+        shared_ptr<SymbolTableManager> symbols;
+    public:
+        virtual void visit(NoDeclaration* no);
+        virtual void visit(NoSubroutine* no);
+        virtual void visit(NoUnaryExpr* no);
+        virtual void visit(NoBinExpr* no);
+        virtual void visit(NoVarExpr* no);
+        virtual void visit(NoLiteralExpr* no);
+        virtual void visit(NoCallExpr* no);
+        virtual void visit(NoCompositeCommand* no);
+        virtual void visit(NoAssignment* no);
+        virtual void visit(NoProcedureCall* no);
+        virtual void visit(NoConditional* no);
+        virtual void visit(NoRepetition* no);
+        virtual void visit(NoRead* no);
+        virtual void visit(NoWrite* no);
+        virtual void visit(NoProgram* no);
+
+        virtual ~Visitor();
 };
 
 extern shared_ptr<NoProgram> root;

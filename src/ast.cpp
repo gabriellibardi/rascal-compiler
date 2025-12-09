@@ -49,6 +49,66 @@ string op_string(Op op) {
     }
 }
 
+void NoDeclaration::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoSubroutine::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoUnaryExpr::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoBinExpr::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoVarExpr::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoLiteralExpr::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoCallExpr::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoCompositeCommand::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoAssignment::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoProcedureCall::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoConditional::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoRepetition::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoRead::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoWrite::accept(Visitor* v) {
+    v->visit(this);
+}
+
+void NoProgram::accept(Visitor* v) {
+    v->visit(this);
+}
+
 No::~No() = default;
 void No::print() { cout << "No::print()" << endl; }
 
