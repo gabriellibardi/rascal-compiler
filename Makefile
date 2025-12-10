@@ -12,6 +12,7 @@ CPP_SRC = \
     $(SRC)/rascal.cpp \
     $(SRC)/semantic/symbol_table.cpp \
     $(SRC)/semantic/check_visitor.cpp \
+	$(SRC)/gen_visitor.cpp \
 
 F_OUT = $(GEN)/lex.yy.cpp
 B_OUT = $(GEN)/parser.tab.cpp
