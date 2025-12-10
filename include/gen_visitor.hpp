@@ -13,6 +13,7 @@ using namespace std;
 class GenVisitor : public Visitor {
     private:
         shared_ptr<ofstream> out_file;
+        int label_count;
     public:
         void visit(NoDeclaration* no) override;
         void visit(NoSubroutine* no) override;
@@ -30,6 +31,6 @@ class GenVisitor : public Visitor {
         void visit(NoWrite* no) override;
         void visit(NoProgram* no) override;
 
-        GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> outfile);
+        GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file);
         ~GenVisitor() = default;
 };

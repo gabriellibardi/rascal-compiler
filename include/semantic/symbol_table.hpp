@@ -43,7 +43,7 @@ class ParamEntry : public SymbolEntry {
 class ProcEntry : public SymbolEntry {
     public:
         vector<shared_ptr<ParamEntry>> param_list;
-        string label;
+        int label_num;
         
         ProcEntry(string name, vector<shared_ptr<ParamEntry>> param_list);
         ~ProcEntry() = default;
@@ -53,7 +53,7 @@ class FuncEntry : public SymbolEntry {
     public:
         vector<shared_ptr<ParamEntry>> param_list;
         VarType return_type;
-        string label;
+        int label_num;
 
         FuncEntry(string name, vector<shared_ptr<ParamEntry>> param_list, VarType return_type);
         ~FuncEntry() = default;

@@ -20,7 +20,8 @@ void GenVisitor::visit(NoRead* no) { }
 void GenVisitor::visit(NoWrite* no) { }
 void GenVisitor::visit(NoProgram* no) { }
 
-GenVisitor::GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> outfile) {
+GenVisitor::GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file) {
+    this->label_count = 0;
     this->symbols = symbols;
     this->out_file = out_file;
 }
