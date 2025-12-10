@@ -28,24 +28,11 @@ void GenVisitor::visit(NoDeclaration* no) { }
 void GenVisitor::visit(NoSubroutine* no) { }
 void GenVisitor::visit(NoUnaryExpr* no) { }
 void GenVisitor::visit(NoBinExpr* no) { }
+
 void GenVisitor::visit(NoVarExpr* no) {
-    auto s = this->symbols->search(no->identifier);
-    int m;
-    if (this->symbols->state == Scope::GLOBAL) m = 0;
-    else m = 1;
-    int n;
-    switch (s->category) {
-    case SymbolCategory::PARAMETER:
-        auto t = dynamic_pointer_cast<ParamEntry>(s);
-        n = t->address;
-        break;
-    case SymbolCategory::VARIABLE:
-        auto t = dynamic_pointer_cast<VarEntry>(s);
-        n = t->address;
-        break;
-    }
-    emit("CRVL", m, n);
+    
 }
+
 void GenVisitor::visit(NoLiteralExpr* no) { }
 void GenVisitor::visit(NoCallExpr* no) { }
 void GenVisitor::visit(NoCompositeCommand* no) { }
@@ -55,7 +42,20 @@ void GenVisitor::visit(NoConditional* no) { }
 void GenVisitor::visit(NoRepetition* no) { }
 void GenVisitor::visit(NoRead* no) { }
 void GenVisitor::visit(NoWrite* no) { }
-void GenVisitor::visit(NoProgram* no) { }
+
+void GenVisitor::visit(NoProgram* no) {
+    emit("INPP");
+
+    for (auto &decl : no->declaration_section)
+        decl->accept(this);
+
+    for (auto &rout : no->subroutine_section)
+        rout->accept(this);
+
+    no->body->accept(this);
+
+    emit("PARA");
+}
 
 GenVisitor::GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file) {
     this->label_count = 0;
