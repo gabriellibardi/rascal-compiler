@@ -78,11 +78,12 @@ class SymbolTable {
 
 class SymbolTableManager {
     private:
-        Scope state;
         shared_ptr<SymbolTable> active_table, global_table;
         map<string, shared_ptr<SymbolTable>> rout_tables;
         vector<shared_ptr<SymbolEntry>> ordered_active_entries;
     public:
+        Scope state;
+        
         bool install(shared_ptr<SymbolEntry> symbol);
         shared_ptr<SymbolEntry> search(string identifier);
         bool set_local(string rout_id);
