@@ -42,6 +42,11 @@ class NoDeclaration : public No {
         ~NoDeclaration();
 };
 
+class NoCommand : public No {
+    public:
+        virtual ~NoCommand() = default;
+};
+
 class NoSubroutine : public No {
     public:
         string identifier;
@@ -49,11 +54,12 @@ class NoSubroutine : public No {
         VarType return_type;
         vector<shared_ptr<NoDeclaration>> formal_parameters;
         vector<shared_ptr<NoDeclaration>> declaration_section;
+        shared_ptr<NoCommand> body;
 
         void print() override;
         void accept(Visitor* visitor) override;
 
-        NoSubroutine(string identifier, RoutType rout_type, VarType return_type, vector<shared_ptr<NoDeclaration>> formal_param, vector<shared_ptr<NoDeclaration>> decl_section);
+        NoSubroutine(string identifier, RoutType rout_type, VarType return_type, vector<shared_ptr<NoDeclaration>> formal_param, vector<shared_ptr<NoDeclaration>> decl_section, shared_ptr<NoCommand> body);
         ~NoSubroutine();
 };
 
@@ -123,11 +129,6 @@ class NoCallExpr : public NoExpression {
 
         NoCallExpr(string identifier, vector<shared_ptr<NoExpression>> expression_list);
         ~NoCallExpr() = default;
-};
-
-class NoCommand : public No {
-    public:
-        virtual ~NoCommand() = default;
 };
 
 class NoCompositeCommand : public NoCommand {
@@ -229,23 +230,23 @@ class Visitor {
     protected:
         shared_ptr<SymbolTableManager> symbols;
     public:
-        virtual void visit(NoDeclaration* no);
-        virtual void visit(NoSubroutine* no);
-        virtual void visit(NoUnaryExpr* no);
-        virtual void visit(NoBinExpr* no);
-        virtual void visit(NoVarExpr* no);
-        virtual void visit(NoLiteralExpr* no);
-        virtual void visit(NoCallExpr* no);
-        virtual void visit(NoCompositeCommand* no);
-        virtual void visit(NoAssignment* no);
-        virtual void visit(NoProcedureCall* no);
-        virtual void visit(NoConditional* no);
-        virtual void visit(NoRepetition* no);
-        virtual void visit(NoRead* no);
-        virtual void visit(NoWrite* no);
-        virtual void visit(NoProgram* no);
+        virtual void visit(NoDeclaration* no) = 0;
+        virtual void visit(NoSubroutine* no) = 0;
+        virtual void visit(NoUnaryExpr* no) = 0;
+        virtual void visit(NoBinExpr* no) = 0;
+        virtual void visit(NoVarExpr* no) = 0;
+        virtual void visit(NoLiteralExpr* no) = 0;
+        virtual void visit(NoCallExpr* no) = 0;
+        virtual void visit(NoCompositeCommand* no) = 0;
+        virtual void visit(NoAssignment* no) = 0;
+        virtual void visit(NoProcedureCall* no) = 0;
+        virtual void visit(NoConditional* no) = 0;
+        virtual void visit(NoRepetition* no) = 0;
+        virtual void visit(NoRead* no) = 0;
+        virtual void visit(NoWrite* no) = 0;
+        virtual void visit(NoProgram* no) = 0;
 
-        virtual ~Visitor();
+        virtual ~Visitor() = default;
 };
 
 extern shared_ptr<NoProgram> root;

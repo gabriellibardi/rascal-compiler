@@ -111,6 +111,7 @@ void NoProgram::accept(Visitor* v) {
 
 No::~No() = default;
 void No::print() { cout << "No::print()" << endl; }
+void No::accept(Visitor* v) {}
 
 void NoDeclaration::print() {
     cout << "(";
@@ -168,12 +169,13 @@ void NoSubroutine::print() {
     cout << ")";
 }
 
-NoSubroutine::NoSubroutine(string identifier, RoutType rout_type, VarType return_type, vector<shared_ptr<NoDeclaration>> formal_param, vector<shared_ptr<NoDeclaration>> decl_section) {
+NoSubroutine::NoSubroutine(string identifier, RoutType rout_type, VarType return_type, vector<shared_ptr<NoDeclaration>> formal_param, vector<shared_ptr<NoDeclaration>> decl_section, shared_ptr<NoCommand> body) {
     this->identifier = identifier;
     this->rout_type = rout_type;
     this->return_type = return_type;
     this->formal_parameters = formal_param;
     this->declaration_section = decl_section;
+    this->body = body;
 }
 
 NoSubroutine::~NoSubroutine() = default;

@@ -55,7 +55,7 @@ using namespace std;
 %type <shared_ptr<NoSubroutine>> procedure_declaration function_declaration
 %type <vector<shared_ptr<NoDeclaration>>> optional_formal_parameters formal_parameters aux_formal_parameters
 %type <shared_ptr<NoDeclaration>> parameter_declaration
-%type <vector<shared_ptr<NoDeclaration>>> subroutine_block
+%type <shared_ptr<AuxMap>> subroutine_block
 %type <shared_ptr<NoCommand>> command assignment procedure_call conditional repetition read write composite_command
 %type <vector<shared_ptr<NoCommand>>> aux_composite_command
 %type <vector<shared_ptr<NoExpression>>> expression_list aux_expression_list optional_expression_list
@@ -147,19 +147,25 @@ subroutine_declaration_section
 
 procedure_declaration
     : TOK_PROCEDURE TOK_ID optional_formal_parameters TOK_SEMICOLON subroutine_block {
-        $$ = make_shared<NoSubroutine>($2, RoutType::PROCEDURE, VarType::INTEGER, $3, $5);
+        auto decls = any_cast<vector<shared_ptr<NoDeclaration>>>((*$5)["decls"]);
+        auto body  = any_cast<shared_ptr<NoCommand>>((*$5)["body"]);
+        $$ = make_shared<NoSubroutine>($2, RoutType::PROCEDURE, VarType::INTEGER, $3, decls, body);
     }
     ;
 
 function_declaration
     : TOK_FUNCTION TOK_ID optional_formal_parameters TOK_COLON type TOK_SEMICOLON subroutine_block {
-        $$ = make_shared<NoSubroutine>($2, RoutType::FUNCTION, $5, $3, $7);
+        auto decls = any_cast<vector<shared_ptr<NoDeclaration>>>((*$7)["decls"]);
+        auto body  = any_cast<shared_ptr<NoCommand>>((*$7)["body"]);
+        $$ = make_shared<NoSubroutine>($2, RoutType::FUNCTION, $5, $3, decls, body);
     }
     ;
 
 subroutine_block
     : optional_var_declaration_section composite_command {
-        $$ = $1;
+        $$ = make_shared<AuxMap>();
+        (*$$)["decls"] = $1;
+        (*$$)["body"]  = $2;
     }
     ;
 

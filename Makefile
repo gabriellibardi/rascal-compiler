@@ -7,8 +7,11 @@ GRAMMAR = $(SRC)/grammar
 F_IN = $(GRAMMAR)/lexer.l
 B_IN = $(GRAMMAR)/parser.y
 
-AST = $(SRC)/ast.cpp
-RASCAL = $(SRC)/rascal.cpp
+CPP_SRC = \
+    $(SRC)/ast.cpp \
+    $(SRC)/rascal.cpp \
+    $(SRC)/semantic/symbol_table.cpp \
+    $(SRC)/semantic/check_visitor.cpp \
 
 F_OUT = $(GEN)/lex.yy.cpp
 B_OUT = $(GEN)/parser.tab.cpp
@@ -30,8 +33,9 @@ $(B_OUT) $(B_HEADER): $(B_IN) | $(GEN)
 $(F_OUT): $(F_IN) $(B_HEADER) | $(GEN)
 	flex -o $(F_OUT) $(F_IN)
 
-$(EXE): $(B_OUT) $(F_OUT) $(AST) $(RASCAL) | $(BUILD)
-	g++ $(B_OUT) $(F_OUT) $(AST) $(RASCAL) -Wall -o $(EXE) -I$(SRC) -I$(GEN) -I$(INCLUDE) -std=c++20
+$(EXE): $(B_OUT) $(F_OUT) $(CPP_SRC) | $(BUILD)
+	g++ $(B_OUT) $(F_OUT) $(CPP_SRC) -Wall -o $(EXE) \
+		-I$(SRC) -I$(GEN) -I$(INCLUDE) -std=c++20
 
 clean:
 	rm -rf $(BUILD)

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <map>
 #include <vector>
 #include <memory>
@@ -17,7 +19,7 @@ class SymbolEntry {
         Scope scope;
 
         SymbolEntry(string name, SymbolCategory category);
-        virtual ~SymbolEntry();
+        virtual ~SymbolEntry() = default;
 };
 
 class VarEntry : public SymbolEntry {
