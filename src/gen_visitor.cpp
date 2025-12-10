@@ -4,6 +4,22 @@
 
 using namespace std;
 
+string GenVisitor::new_label() {
+    return "L" + to_string(label_count++);
+}
+
+void GenVisitor::emit(const string &code) {
+    (*out) << code << endl;
+}
+
+void GenVisitor::emit(const string &code, int a) {
+    (*out) << code << " " << a << endl;
+}
+
+void GenVisitor::emit(const string &code, int a, int b) {
+    (*out) << code << " " << a << " " << b << endl;
+}
+
 void GenVisitor::visit(NoDeclaration* no) { }
 void GenVisitor::visit(NoSubroutine* no) { }
 void GenVisitor::visit(NoUnaryExpr* no) { }

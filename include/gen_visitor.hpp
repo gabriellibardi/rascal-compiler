@@ -14,6 +14,11 @@ class GenVisitor : public Visitor {
     private:
         shared_ptr<ofstream> out_file;
         int label_count;
+        
+        string new_label();
+        void emit(const string &code);
+        void emit(const string &code, int a);
+        void emit(const string &code, int a, int b);
     public:
         void visit(NoDeclaration* no) override;
         void visit(NoSubroutine* no) override;
