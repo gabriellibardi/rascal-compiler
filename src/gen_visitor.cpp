@@ -13,28 +13,25 @@ void GenVisitor::emit_label(int label_num) {
 }
 
 void GenVisitor::emit(const string &code) {
-    (*out_file) << '\t' << code << endl;
+    (*out_file) << "     " << code << endl;
 }
 
 void GenVisitor::emit(const string &code, int a) {
-    (*out_file) << '\t' << code << " " << a << endl;
+    (*out_file) << "     " << code << " " << a << endl;
 }
 
 void GenVisitor::emit(const string &code, int a, int b) {
-    (*out_file) << '\t' << code << " " << a << "," << b << endl;
+    (*out_file) << "     " << code << " " << a << "," << b << endl;
 }
 
-// helper: emit jump/CHPR that references a label by Rxx
 void GenVisitor::emit_label_ref(const string &code, int label_num) {
-    // print R with at least two digits like R00, R01
     string lab = (label_num < 10 ? "R0" + to_string(label_num) : "R" + to_string(label_num));
-    (*out_file) << '\t' << code << " " << lab << endl;
+    (*out_file) << "     " << code << " " << lab << endl;
 }
 
-// helper: emit CHPR label,level where label printed as Rxx
 void GenVisitor::emit_label_ref(const string &code, int label_num, int level) {
     string lab = (label_num < 10 ? "R0" + to_string(label_num) : "R" + to_string(label_num));
-    (*out_file) << '\t' << code << " " << lab << "," << level << endl;
+    (*out_file) << "     " << code << " " << lab << "," << level << endl;
 }
 
 bool GenVisitor::load_var_info(const string &id, int &level, int &address) {
@@ -58,12 +55,17 @@ bool GenVisitor::load_var_info(const string &id, int &level, int &address) {
         return true;
     }
 
+    if (entry->category == SymbolCategory::FUNCTION) {
+        auto func = dynamic_pointer_cast<FuncEntry>(entry);
+        level = 1;
+        address = -5 - func->param_list.size(); 
+        return true;
+    }
+
     return false;
 }
 
 void GenVisitor::visit(NoDeclaration* no) {
-    // NÃO emitir AMEM global aqui — NoProgram cuida do AMEM consolidado para globals.
-    // Emitir AMEM apenas se estivermos no escopo local:
     if (symbols->state == Scope::LOCAL) {
         int total = no->identifier_list.size();
         if (total > 0) emit("AMEM", total);
@@ -100,7 +102,8 @@ void GenVisitor::visit(NoSubroutine* no) {
 
     emit("ENPR " + to_string(param_count));
 
-    auto locals = symbols->get_ordered_active_entries();
+    auto locals = symbols->get_ordered_active_entries(no->identifier);
+    
     int local_count = 0;
     for (auto &sym : locals) {
         if (sym->category == SymbolCategory::VARIABLE)
@@ -110,14 +113,12 @@ void GenVisitor::visit(NoSubroutine* no) {
     if (local_count > 0)
         emit("AMEM", local_count);
 
-    // gerar corpo
     if (no->body)
         no->body->accept(this);
 
     if (local_count > 0)
         emit("DMEM", local_count);
 
-    // RTPR com número de parâmetros (conforme esperado)
     emit("RTPR " + to_string(param_count));
 }
 
@@ -189,6 +190,8 @@ void GenVisitor::visit(NoCallExpr* no) {
     }
 
     auto func = dynamic_pointer_cast<FuncEntry>(entry);
+    
+    emit("AMEM 1");
 
     for (auto &expr : no->expression_list)
         expr->accept(this);
@@ -316,8 +319,8 @@ void GenVisitor::visit(NoProgram* no) {
     emit("FIM");
 }
 
-GenVisitor::GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file) {
-    this->label_count = 0;
+GenVisitor::GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file, int initial_label) {
+    this->label_count = initial_label;
     this->symbols = symbols;
     this->out_file = out_file;
 }

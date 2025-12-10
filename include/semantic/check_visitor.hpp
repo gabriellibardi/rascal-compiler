@@ -29,6 +29,8 @@ class CheckVisitor : public Visitor {
         void visit(NoWrite* no) override;
         void visit(NoProgram* no) override;
 
+        int get_count() { return next_label; }
+
         CheckVisitor(shared_ptr<SymbolTableManager> symbols);
         ~CheckVisitor() = default;
 };

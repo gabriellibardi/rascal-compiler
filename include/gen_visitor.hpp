@@ -40,6 +40,6 @@ class GenVisitor : public Visitor {
         void visit(NoWrite* no) override;
         void visit(NoProgram* no) override;
 
-        GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file);
+        GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file, int initial_label);
         ~GenVisitor() = default;
 };

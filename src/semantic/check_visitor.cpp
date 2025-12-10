@@ -8,7 +8,6 @@ static void semantic_error(const string &msg) {
 }
 
 void CheckVisitor::visit(NoDeclaration* no) {
-    // Variáveis locais ou globais → address definido automaticamente no SymbolTableManager::install()
     for (string id : no->identifier_list) {
         auto s = make_shared<VarEntry>(id, no->var_type);
         if (!symbols->install(s)) {
@@ -18,7 +17,6 @@ void CheckVisitor::visit(NoDeclaration* no) {
 }
 
 void CheckVisitor::visit(NoSubroutine* no) {
-    // Criar entrada global (sem escopo local ainda)
     shared_ptr<SymbolEntry> global_entry;
 
     if (no->rout_type == RoutType::FUNCTION) {
@@ -34,13 +32,11 @@ void CheckVisitor::visit(NoSubroutine* no) {
         );
     }
 
-    // Instalar no escopo GLOBAL
     if (!symbols->install(global_entry)) {
         semantic_error(no->identifier + " redeclared");
         return;
     }
 
-    // Atribuir label
     if (global_entry->category == SymbolCategory::FUNCTION) {
         auto f = dynamic_pointer_cast<FuncEntry>(global_entry);
         f->label_num = next_label++;
@@ -49,19 +45,14 @@ void CheckVisitor::visit(NoSubroutine* no) {
         p->label_num = next_label++;
     }
 
-    // Entrar no escopo local
     symbols->set_local(no->identifier);
 
-    // ----------------------------
-    // PARÂMETROS
-    // ----------------------------
     vector<shared_ptr<ParamEntry>> param_entries;
 
     for (auto &param_decl : no->formal_parameters) {
         for (const string &id : param_decl->identifier_list) {
             auto p = make_shared<ParamEntry>(id, param_decl->var_type);
 
-            // endereço automático via install()
             if (!symbols->install(p)) {
                 semantic_error(id + " redeclared");
             } else {
@@ -70,9 +61,6 @@ void CheckVisitor::visit(NoSubroutine* no) {
         }
     }
 
-    // ----------------------------
-    // VARIÁVEIS LOCAIS
-    // ----------------------------
     for (auto &var_decl : no->declaration_section) {
         for (const string &id : var_decl->identifier_list) {
             auto v = make_shared<VarEntry>(id, var_decl->var_type);
@@ -83,7 +71,6 @@ void CheckVisitor::visit(NoSubroutine* no) {
         }
     }
 
-    // Atualizar info dos parâmetros na entrada global
     auto installed = symbols->search(no->identifier);
     if (installed) {
         if (installed->category == SymbolCategory::FUNCTION) {
@@ -96,10 +83,7 @@ void CheckVisitor::visit(NoSubroutine* no) {
         }
     }
 
-    // Salvar ordem dos símbolos desta subrotina
     symbols->save_ordered_entries(no->identifier);
-
-    // NÃO VOLTA PARA GLOBAL AQUI (isso é responsabilidade do GenVisitor)
 }
 
 void CheckVisitor::visit(NoUnaryExpr* no) {

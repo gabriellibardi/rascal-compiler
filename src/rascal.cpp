@@ -44,7 +44,7 @@ int main (int argc, char** argv) {
       return 1;
    }
 
-   GenVisitor g_visitor(symbol_manager, outfile);
+   GenVisitor g_visitor(symbol_manager, outfile, c_visitor.get_count());
    root->accept(&g_visitor);
 
    outfile->close();
