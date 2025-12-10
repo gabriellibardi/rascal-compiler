@@ -15,7 +15,8 @@ class GenVisitor : public Visitor {
         shared_ptr<ofstream> out_file;
         int label_count;
         
-        string new_label();
+        int new_label();
+        void emit_label(int label_num);
         void emit(const string &code);
         void emit(const string &code, int a);
         void emit(const string &code, int a, int b);
