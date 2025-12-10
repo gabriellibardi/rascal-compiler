@@ -20,6 +20,7 @@ class GenVisitor : public Visitor {
         void emit(const string &code);
         void emit(const string &code, int a);
         void emit(const string &code, int a, int b);
+        bool load_var_info(const string &id, int &level, int &address);
     public:
         void visit(NoDeclaration* no) override;
         void visit(NoSubroutine* no) override;
