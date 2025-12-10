@@ -44,8 +44,31 @@ SymbolTable::SymbolTable() {
 }
 
 bool SymbolTableManager::install(shared_ptr<SymbolEntry> s) {
-    s->scope = this->state;
-    return this->active_table->install(s);
+    s->scope = state;
+
+    if (!active_table->install(s))
+        return false;
+
+    if (state == Scope::GLOBAL) {
+        if (s->category == SymbolCategory::VARIABLE) {
+            auto v = dynamic_pointer_cast<VarEntry>(s);
+            v->address = global_offset++;
+        }
+    } 
+    else if (state == Scope::LOCAL) {
+        if (s->category == SymbolCategory::PARAMETER) {
+            auto p = dynamic_pointer_cast<ParamEntry>(s);
+            p->address = param_offset--;
+        }
+        else if (s->category == SymbolCategory::VARIABLE) {
+            auto v = dynamic_pointer_cast<VarEntry>(s);
+            v->address = local_offset++;
+        }
+
+        ordered_active_entries.push_back(s);
+    }
+
+    return true;
 }
 
 shared_ptr<SymbolEntry> SymbolTableManager::search(string identifier) {
@@ -67,27 +90,53 @@ shared_ptr<SymbolEntry> SymbolTableManager::search(string identifier) {
 }
 
 void SymbolTableManager::set_global() {
-    this->state = Scope::GLOBAL;
-    this->active_table = this->global_table;
-    this->ordered_active_entries = vector<shared_ptr<SymbolEntry>>();
+    state = Scope::GLOBAL;
+    active_table = global_table;
+    ordered_active_entries.clear();
 }
 
 bool SymbolTableManager::set_local(string rout_id) {
-    if (this->rout_tables.count(rout_id) == 1) {
-        return false;
+    state = Scope::LOCAL;
+
+    if (rout_tables.count(rout_id) == 1) {
+        active_table = rout_tables[rout_id];
+    } else {
+        auto new_table = make_shared<SymbolTable>();
+        rout_tables[rout_id] = new_table;
+        active_table = new_table;
     }
-    this->state = Scope::LOCAL;
-    auto new_table = make_shared<SymbolTable>();
-    this->rout_tables[rout_id] = new_table;
-    this->active_table = new_table;
-    this->ordered_active_entries = vector<shared_ptr<SymbolEntry>>();
+
+    ordered_active_entries.clear();
+
+    local_offset = 0;
+    param_offset = -5;
+
     return true;
 }
 
-SymbolTableManager::SymbolTableManager() {
-    this->state = Scope::GLOBAL;
-    this->global_table = make_shared<SymbolTable>();
-    this->active_table = this->global_table;
-    this->rout_tables = map<string, shared_ptr<SymbolTable>>();
+vector<shared_ptr<SymbolEntry>> SymbolTableManager::get_ordered_active_entries() {
+    return ordered_active_entries;
+}
+
+vector<shared_ptr<SymbolEntry>> SymbolTableManager::get_ordered_active_entries(const string &rout_id) {
+    if (this->rout_ordered_entries.count(rout_id) == 0) return vector<shared_ptr<SymbolEntry>>();
+    return this->rout_ordered_entries[rout_id];
+}
+
+void SymbolTableManager::save_ordered_entries(const string &rout_id) {
+    this->rout_ordered_entries[rout_id] = this->ordered_active_entries;
     this->ordered_active_entries = vector<shared_ptr<SymbolEntry>>();
+}
+
+SymbolTableManager::SymbolTableManager() {
+    state = Scope::GLOBAL;
+    global_table = make_shared<SymbolTable>();
+    active_table = global_table;
+
+    rout_tables = {};
+    ordered_active_entries = {};
+
+    global_offset = 0;
+    local_offset = 0;
+    param_offset = -5;
 }

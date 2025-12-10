@@ -81,6 +81,10 @@ class SymbolTableManager {
         shared_ptr<SymbolTable> active_table, global_table;
         map<string, shared_ptr<SymbolTable>> rout_tables;
         vector<shared_ptr<SymbolEntry>> ordered_active_entries;
+        map<string, vector<shared_ptr<SymbolEntry>>> rout_ordered_entries;
+        int global_offset;
+        int local_offset;
+        int param_offset;
     public:
         Scope state;
         
@@ -89,6 +93,8 @@ class SymbolTableManager {
         bool set_local(string rout_id);
         void set_global();
         vector<shared_ptr<SymbolEntry>> get_ordered_active_entries();
+        vector<shared_ptr<SymbolEntry>> get_ordered_active_entries(const string &rout_id);
+        void save_ordered_entries(const string &rout_id);
 
         SymbolTableManager();
         ~SymbolTableManager() = default;

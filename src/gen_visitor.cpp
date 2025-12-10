@@ -9,7 +9,7 @@ int GenVisitor::new_label() {
 }
 
 void GenVisitor::emit_label(int label_num) {
-    (*out_file) << "R" << label_num << ": NADA" << endl;
+    (*out_file) << "R" << (label_num < 10 ? "0" + to_string(label_num) : to_string(label_num)) << ": NADA" << endl;
 }
 
 void GenVisitor::emit(const string &code) {
@@ -24,6 +24,19 @@ void GenVisitor::emit(const string &code, int a, int b) {
     (*out_file) << '\t' << code << " " << a << "," << b << endl;
 }
 
+// helper: emit jump/CHPR that references a label by Rxx
+void GenVisitor::emit_label_ref(const string &code, int label_num) {
+    // print R with at least two digits like R00, R01
+    string lab = (label_num < 10 ? "R0" + to_string(label_num) : "R" + to_string(label_num));
+    (*out_file) << '\t' << code << " " << lab << endl;
+}
+
+// helper: emit CHPR label,level where label printed as Rxx
+void GenVisitor::emit_label_ref(const string &code, int label_num, int level) {
+    string lab = (label_num < 10 ? "R0" + to_string(label_num) : "R" + to_string(label_num));
+    (*out_file) << '\t' << code << " " << lab << "," << level << endl;
+}
+
 bool GenVisitor::load_var_info(const string &id, int &level, int &address) {
     auto entry = symbols->search(id);
     if (!entry) {
@@ -33,7 +46,7 @@ bool GenVisitor::load_var_info(const string &id, int &level, int &address) {
 
     if (entry->category == SymbolCategory::VARIABLE) {
         auto var = dynamic_pointer_cast<VarEntry>(entry);
-        level = var->scope == Scope::GLOBAL ? 0 : 1;
+        level = (var->scope == Scope::GLOBAL ? 0 : 1);
         address = var->address;
         return true;
     }
@@ -48,22 +61,64 @@ bool GenVisitor::load_var_info(const string &id, int &level, int &address) {
     return false;
 }
 
-void GenVisitor::visit(NoDeclaration* no) { }
-void GenVisitor::visit(NoSubroutine* no) {
-    auto s = this->symbol->search(no->identifier);
-    if (s == nullptr) return;
-    auto l = new_label();
-    emit_label(l);
-    switch (s->category) {
-    case SymbolCategory::FUNCTION:
-        auto t = dynamic_pointer_cast<FuncEntry>(s);
-        t->label_num = l;
-        break;
-    case SymbolCategory::PROCEDURE:
-        auto t = dynamic_pointer_cast<ProcEntry>(s);
-        t->label_num = l;
-        break;
+void GenVisitor::visit(NoDeclaration* no) {
+    // NÃO emitir AMEM global aqui — NoProgram cuida do AMEM consolidado para globals.
+    // Emitir AMEM apenas se estivermos no escopo local:
+    if (symbols->state == Scope::LOCAL) {
+        int total = no->identifier_list.size();
+        if (total > 0) emit("AMEM", total);
     }
+}
+
+void GenVisitor::visit(NoSubroutine* no) {
+    auto entry = symbols->search(no->identifier);
+    if (!entry) {
+        cerr << "CG ERROR: unknown subroutine '" << no->identifier << "'" << endl;
+        return;
+    }
+
+    int label = -1;
+    int param_count = 0;
+
+    if (entry->category == SymbolCategory::PROCEDURE) {
+        auto proc = dynamic_pointer_cast<ProcEntry>(entry);
+        label = proc->label_num;
+        param_count = proc->param_list.size();
+    }
+    else if (entry->category == SymbolCategory::FUNCTION) {
+        auto func = dynamic_pointer_cast<FuncEntry>(entry);
+        label = func->label_num;
+        param_count = func->param_list.size();
+    }
+    else {
+        cerr << "CG ERROR: subroutine '" << no->identifier
+             << "' is not procedure/function" << endl;
+        return;
+    }
+
+    emit_label(label);
+
+    emit("ENPR " + to_string(param_count));
+
+    auto locals = symbols->get_ordered_active_entries();
+    int local_count = 0;
+    for (auto &sym : locals) {
+        if (sym->category == SymbolCategory::VARIABLE)
+            local_count++;
+    }
+
+    if (local_count > 0)
+        emit("AMEM", local_count);
+
+    // gerar corpo
+    if (no->body)
+        no->body->accept(this);
+
+    if (local_count > 0)
+        emit("DMEM", local_count);
+
+    // RTPR com número de parâmetros (conforme esperado)
+    emit("RTPR " + to_string(param_count));
 }
 
 void GenVisitor::visit(NoUnaryExpr* no) {
@@ -111,42 +166,113 @@ void GenVisitor::visit(NoBinExpr* no) {
 }
 
 void GenVisitor::visit(NoVarExpr* no) {
-    auto s = this->symbols->search(no->identifier);
-    int m;
-    if (this->symbols->state == Scope::GLOBAL) m = 0;
-    else m = 1;
-    int n;
-    switch (s->category) {
-    case SymbolCategory::PARAMETER:
-        auto t = dynamic_pointer_cast<ParamEntry>(s);
-        n = t->address;
-        break;
-    case SymbolCategory::VARIABLE:
-        auto t = dynamic_pointer_cast<VarEntry>(s);
-        n = t->address;
-        break;
-    }
-    emit("CRVL", m, n);
+    int level, address;
+    if (!load_var_info(no->identifier, level, address))
+        return;
+
+    emit("CRVL", level, address);
 }
+
 void GenVisitor::visit(NoLiteralExpr* no) {
-    switch (no->type) {
-    case VarType::BOOLEAN:
-        int v = 0;
-        if (no->logic) v = 1;
-        emit("CRCT", v);
-        break;
-    case VarType::INTEGER:
+    if (no->type == VarType::INTEGER)
         emit("CRCT", no->num);
-        break;
+    else
+        emit("CRCT", no->logic ? 1 : 0);
+}
+
+void GenVisitor::visit(NoCallExpr* no) {
+    auto entry = symbols->search(no->identifier);
+
+    if (!entry || entry->category != SymbolCategory::FUNCTION) {
+        cerr << "CG ERROR: '" << no->identifier << "' is not a function" << endl;
+        return;
+    }
+
+    auto func = dynamic_pointer_cast<FuncEntry>(entry);
+
+    for (auto &expr : no->expression_list)
+        expr->accept(this);
+
+    int level = (func->scope == Scope::GLOBAL ? 0 : 1);
+
+    emit_label_ref("CHPR", func->label_num, level);
+}
+
+void GenVisitor::visit(NoCompositeCommand* no) {
+    for (auto &cmd : no->command_list)
+        cmd->accept(this);
+}
+
+void GenVisitor::visit(NoAssignment* no) {
+    int level, address;
+    if (!load_var_info(no->identifier, level, address))
+        return;
+
+    no->expr->accept(this);
+
+    emit("ARMZ", level, address);
+}
+
+void GenVisitor::visit(NoProcedureCall* no) {
+    auto entry = symbols->search(no->identifier);
+
+    if (!entry || entry->category != SymbolCategory::PROCEDURE) {
+        cerr << "CG ERROR: '" << no->identifier << "' is not a procedure" << endl;
+        return;
+    }
+
+    auto proc = dynamic_pointer_cast<ProcEntry>(entry);
+
+    for (auto &expr : no->expression_list)
+        expr->accept(this);
+
+    int level = (proc->scope == Scope::GLOBAL ? 0 : 1);
+
+    emit_label_ref("CHPR", proc->label_num, level);
+}
+
+void GenVisitor::visit(NoConditional* no) {
+    int Lfalse = new_label();
+    int Lend = new_label();
+
+    no->condition->accept(this);
+    emit_label_ref("DSVF", Lfalse);
+
+    no->then_cmd->accept(this);
+    emit_label_ref("DSVS", Lend);
+
+    emit_label(Lfalse);
+    if (no->else_cmd)
+        no->else_cmd->accept(this);
+
+    emit_label(Lend);
+}
+
+void GenVisitor::visit(NoRepetition* no) {
+    int Lstart = new_label();
+    int Lexit = new_label();
+
+    emit_label(Lstart);
+
+    no->condition->accept(this);
+    emit_label_ref("DSVF", Lexit);
+
+    no->body->accept(this);
+    emit_label_ref("DSVS", Lstart);
+
+    emit_label(Lexit);
+}
+
+void GenVisitor::visit(NoRead* no) {
+    for (auto &id : no->identifier_list) {
+        int level, address;
+        if (!load_var_info(id, level, address))
+            continue;
+
+        emit("LEIT");
+        emit("ARMZ", level, address);
     }
 }
-void GenVisitor::visit(NoCallExpr* no) { }
-void GenVisitor::visit(NoCompositeCommand* no) { }
-void GenVisitor::visit(NoAssignment* no) { }
-void GenVisitor::visit(NoProcedureCall* no) { }
-void GenVisitor::visit(NoConditional* no) { }
-void GenVisitor::visit(NoRepetition* no) { }
-void GenVisitor::visit(NoRead* no) { }
 
 void GenVisitor::visit(NoWrite* no) {
     for (auto &expr : no->expression_list) {
@@ -158,15 +284,36 @@ void GenVisitor::visit(NoWrite* no) {
 void GenVisitor::visit(NoProgram* no) {
     emit("INPP");
 
+    int total_globals = 0;
     for (auto &decl : no->declaration_section)
-        decl->accept(this);
+        total_globals += decl->identifier_list.size();
+
+    if (total_globals > 0)
+        emit("AMEM", total_globals);
+
+    bool has_subroutines = !no->subroutine_section.empty();
+
+    int main_label = -1;
+
+    if (has_subroutines) {
+        main_label = new_label();
+        emit_label_ref("DSVS", main_label);
+    }
 
     for (auto &rout : no->subroutine_section)
         rout->accept(this);
 
-    no->body->accept(this);
+    if (has_subroutines) {
+        emit_label(main_label);
+    }
+    if (no->body)
+        no->body->accept(this);
+
+    if (total_globals > 0)
+        emit("DMEM", total_globals);
 
     emit("PARA");
+    emit("FIM");
 }
 
 GenVisitor::GenVisitor(shared_ptr<SymbolTableManager> symbols, shared_ptr<ofstream> out_file) {

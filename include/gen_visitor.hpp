@@ -16,10 +16,12 @@ class GenVisitor : public Visitor {
         int label_count;
         
         int new_label();
-        void emit_label(int label_num);
         void emit(const string &code);
         void emit(const string &code, int a);
         void emit(const string &code, int a, int b);
+        void emit_label(int label_num);
+        void emit_label_ref(const string &code, int label_num);
+        void emit_label_ref(const string &code, int label_num, int level);
         bool load_var_info(const string &id, int &level, int &address);
     public:
         void visit(NoDeclaration* no) override;

@@ -10,6 +10,8 @@
 using namespace std;
 
 class CheckVisitor : public Visitor {
+    private:
+        int next_label = 0;
     public:
         void visit(NoDeclaration* no) override;
         void visit(NoSubroutine* no) override;

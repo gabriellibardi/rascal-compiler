@@ -8,38 +8,61 @@ static void semantic_error(const string &msg) {
 }
 
 void CheckVisitor::visit(NoDeclaration* no) {
+    // Variáveis locais ou globais → address definido automaticamente no SymbolTableManager::install()
     for (string id : no->identifier_list) {
-        shared_ptr<SymbolEntry> s = make_shared<VarEntry>(id, no->var_type);
-        if (!this->symbols->install(s)) {
+        auto s = make_shared<VarEntry>(id, no->var_type);
+        if (!symbols->install(s)) {
             semantic_error(id + " redeclared");
-        }   
+        }
     }
 }
 
 void CheckVisitor::visit(NoSubroutine* no) {
-    auto empty_params = vector<shared_ptr<ParamEntry>>();
+    // Criar entrada global (sem escopo local ainda)
     shared_ptr<SymbolEntry> global_entry;
+
     if (no->rout_type == RoutType::FUNCTION) {
-        global_entry = make_shared<FuncEntry>(no->identifier, empty_params, no->return_type);
+        global_entry = make_shared<FuncEntry>(
+            no->identifier,
+            vector<shared_ptr<ParamEntry>>{},
+            no->return_type
+        );
     } else {
-        global_entry = make_shared<ProcEntry>(no->identifier, empty_params);
+        global_entry = make_shared<ProcEntry>(
+            no->identifier,
+            vector<shared_ptr<ParamEntry>>{}
+        );
     }
 
-    if (!this->symbols->install(global_entry)) {
-        semantic_error("subroutine " + no->identifier + " redeclared");
+    // Instalar no escopo GLOBAL
+    if (!symbols->install(global_entry)) {
+        semantic_error(no->identifier + " redeclared");
         return;
     }
 
-    if (!this->symbols->set_local(no->identifier)) {
-        semantic_error(no->identifier + " redeclared (local scope)");
-        return;
+    // Atribuir label
+    if (global_entry->category == SymbolCategory::FUNCTION) {
+        auto f = dynamic_pointer_cast<FuncEntry>(global_entry);
+        f->label_num = next_label++;
+    } else {
+        auto p = dynamic_pointer_cast<ProcEntry>(global_entry);
+        p->label_num = next_label++;
     }
 
+    // Entrar no escopo local
+    symbols->set_local(no->identifier);
+
+    // ----------------------------
+    // PARÂMETROS
+    // ----------------------------
     vector<shared_ptr<ParamEntry>> param_entries;
+
     for (auto &param_decl : no->formal_parameters) {
         for (const string &id : param_decl->identifier_list) {
             auto p = make_shared<ParamEntry>(id, param_decl->var_type);
-            if (!this->symbols->install(p)) {
+
+            // endereço automático via install()
+            if (!symbols->install(p)) {
                 semantic_error(id + " redeclared");
             } else {
                 param_entries.push_back(p);
@@ -47,22 +70,36 @@ void CheckVisitor::visit(NoSubroutine* no) {
         }
     }
 
+    // ----------------------------
+    // VARIÁVEIS LOCAIS
+    // ----------------------------
     for (auto &var_decl : no->declaration_section) {
-        var_decl->accept(this);
-    }
+        for (const string &id : var_decl->identifier_list) {
+            auto v = make_shared<VarEntry>(id, var_decl->var_type);
 
-    auto installed = this->symbols->search(no->identifier);
-    if (installed) {
-        if (installed->category == SymbolCategory::FUNCTION) {
-            auto f = dynamic_pointer_cast<FuncEntry>(installed);
-            if (f) f->param_list = param_entries;
-        } else if (installed->category == SymbolCategory::PROCEDURE) {
-            auto p = dynamic_pointer_cast<ProcEntry>(installed);
-            if (p) p->param_list = param_entries;
+            if (!symbols->install(v)) {
+                semantic_error(id + " redeclared");
+            }
         }
     }
 
-    this->symbols->set_global();
+    // Atualizar info dos parâmetros na entrada global
+    auto installed = symbols->search(no->identifier);
+    if (installed) {
+        if (installed->category == SymbolCategory::FUNCTION) {
+            auto f = dynamic_pointer_cast<FuncEntry>(installed);
+            f->param_list = param_entries;
+        }
+        else if (installed->category == SymbolCategory::PROCEDURE) {
+            auto p = dynamic_pointer_cast<ProcEntry>(installed);
+            p->param_list = param_entries;
+        }
+    }
+
+    // Salvar ordem dos símbolos desta subrotina
+    symbols->save_ordered_entries(no->identifier);
+
+    // NÃO VOLTA PARA GLOBAL AQUI (isso é responsabilidade do GenVisitor)
 }
 
 void CheckVisitor::visit(NoUnaryExpr* no) {
@@ -70,17 +107,17 @@ void CheckVisitor::visit(NoUnaryExpr* no) {
 
     switch (no->op) {
         case Op::NOT:
-            if (no->operand->inferred_type != VarType::BOOLEAN) {
+            if (no->operand->inferred_type != VarType::BOOLEAN)
                 semantic_error("operator 'not' requires boolean operand");
-            }
             no->inferred_type = VarType::BOOLEAN;
             break;
+
         case Op::SUB:
-            if (no->operand->inferred_type != VarType::INTEGER) {
+            if (no->operand->inferred_type != VarType::INTEGER)
                 semantic_error("unary '-' requires integer operand");
-            }
             no->inferred_type = VarType::INTEGER;
             break;
+
         default:
             semantic_error("invalid unary operator");
             break;
@@ -96,30 +133,26 @@ void CheckVisitor::visit(NoBinExpr* no) {
 
     switch (no->op) {
         case Op::ADD: case Op::SUB: case Op::MUL: case Op::DIV:
-            if (lt != VarType::INTEGER || rt != VarType::INTEGER) {
+            if (lt != VarType::INTEGER || rt != VarType::INTEGER)
                 semantic_error("arithmetic operators require integer operands");
-            }
             no->inferred_type = VarType::INTEGER;
             break;
 
         case Op::AND: case Op::OR:
-            if (lt != VarType::BOOLEAN || rt != VarType::BOOLEAN) {
+            if (lt != VarType::BOOLEAN || rt != VarType::BOOLEAN)
                 semantic_error("logical operators require boolean operands");
-            }
             no->inferred_type = VarType::BOOLEAN;
             break;
 
         case Op::L: case Op::LE: case Op::G: case Op::GE:
-            if (lt != VarType::INTEGER || rt != VarType::INTEGER) {
+            if (lt != VarType::INTEGER || rt != VarType::INTEGER)
                 semantic_error("relational operators require integer operands");
-            }
             no->inferred_type = VarType::BOOLEAN;
             break;
 
         case Op::E: case Op::NE:
-            if (lt != rt) {
-                semantic_error("equality operators require operands of the same type");
-            }
+            if (lt != rt)
+                semantic_error("equality operators require operands of same type");
             no->inferred_type = VarType::BOOLEAN;
             break;
 
@@ -130,25 +163,32 @@ void CheckVisitor::visit(NoBinExpr* no) {
 }
 
 void CheckVisitor::visit(NoVarExpr* no) {
-    auto entry = this->symbols->search(no->identifier);
+    auto entry = symbols->search(no->identifier);
+
     if (!entry) {
         semantic_error("variable " + no->identifier + " not declared");
         no->inferred_type = VarType::INTEGER;
         return;
     }
 
-    if (entry->category == SymbolCategory::VARIABLE) {
-        auto v = dynamic_pointer_cast<VarEntry>(entry);
-        no->inferred_type = v->type;
-    } else if (entry->category == SymbolCategory::PARAMETER) {
-        auto p = dynamic_pointer_cast<ParamEntry>(entry);
-        no->inferred_type = p->type;
-    } else if (entry->category == SymbolCategory::FUNCTION) {
-        semantic_error("identifier " + no->identifier + " is a function, use call");
-        no->inferred_type = dynamic_pointer_cast<FuncEntry>(entry)->return_type;
-    } else {
-        semantic_error("identifier " + no->identifier + " is not a variable");
-        no->inferred_type = VarType::INTEGER;
+    switch (entry->category) {
+        case SymbolCategory::VARIABLE:
+            no->inferred_type = dynamic_pointer_cast<VarEntry>(entry)->type;
+            break;
+
+        case SymbolCategory::PARAMETER:
+            no->inferred_type = dynamic_pointer_cast<ParamEntry>(entry)->type;
+            break;
+
+        case SymbolCategory::FUNCTION:
+            semantic_error("identifier " + no->identifier + " is a function, use call");
+            no->inferred_type = dynamic_pointer_cast<FuncEntry>(entry)->return_type;
+            break;
+
+        default:
+            semantic_error("identifier " + no->identifier + " is not a variable");
+            no->inferred_type = VarType::INTEGER;
+            break;
     }
 }
 
@@ -157,23 +197,18 @@ void CheckVisitor::visit(NoLiteralExpr* no) {
 }
 
 void CheckVisitor::visit(NoCallExpr* no) {
-    auto entry = this->symbols->search(no->identifier);
-    if (!entry) {
-        semantic_error("function " + no->identifier + " not declared");
-        no->inferred_type = VarType::INTEGER;
-        return;
-    }
+    auto entry = symbols->search(no->identifier);
 
-    if (entry->category != SymbolCategory::FUNCTION) {
+    if (!entry || entry->category != SymbolCategory::FUNCTION) {
         semantic_error(no->identifier + " is not a function");
         no->inferred_type = VarType::INTEGER;
         return;
     }
 
     auto f = dynamic_pointer_cast<FuncEntry>(entry);
-    if (f->param_list.size() != no->expression_list.size()) {
+
+    if (f->param_list.size() != no->expression_list.size())
         semantic_error("argument count mismatch in call to " + no->identifier);
-    }
 
     for (size_t i = 0; i < no->expression_list.size(); ++i) {
         no->expression_list[i]->accept(this);
@@ -187,13 +222,13 @@ void CheckVisitor::visit(NoCallExpr* no) {
 }
 
 void CheckVisitor::visit(NoCompositeCommand* no) {
-    for (auto &cmd : no->command_list) {
+    for (auto &cmd : no->command_list)
         cmd->accept(this);
-    }
 }
 
 void CheckVisitor::visit(NoAssignment* no) {
-    auto entry = this->symbols->search(no->identifier);
+    auto entry = symbols->search(no->identifier);
+
     if (!entry) {
         semantic_error("variable " + no->identifier + " not declared");
         no->expr->accept(this);
@@ -202,70 +237,63 @@ void CheckVisitor::visit(NoAssignment* no) {
 
     no->expr->accept(this);
 
-    VarType target_type;
-    if (entry->category == SymbolCategory::VARIABLE) {
-        target_type = dynamic_pointer_cast<VarEntry>(entry)->type;
-    } else if (entry->category == SymbolCategory::PARAMETER) {
-        target_type = dynamic_pointer_cast<ParamEntry>(entry)->type;
-    } else if (entry->category == SymbolCategory::FUNCTION) {
-        target_type = dynamic_pointer_cast<FuncEntry>(entry)->return_type;
-    } else {
-        semantic_error("identifier " + no->identifier + " cannot receive assignment");
+    VarType target;
+
+    if (entry->category == SymbolCategory::VARIABLE)
+        target = dynamic_pointer_cast<VarEntry>(entry)->type;
+    else if (entry->category == SymbolCategory::PARAMETER)
+        target = dynamic_pointer_cast<ParamEntry>(entry)->type;
+    else if (entry->category == SymbolCategory::FUNCTION)
+        target = dynamic_pointer_cast<FuncEntry>(entry)->return_type;
+    else {
+        semantic_error("cannot assign to " + no->identifier);
         return;
     }
 
-    if (no->expr->inferred_type != target_type) {
+    if (no->expr->inferred_type != target)
         semantic_error("type mismatch in assignment to " + no->identifier);
-    }
 }
 
 void CheckVisitor::visit(NoProcedureCall* no) {
-    auto entry = this->symbols->search(no->identifier);
-    if (!entry) {
-        semantic_error("procedure " + no->identifier + " not declared");
-        return;
-    }
+    auto entry = symbols->search(no->identifier);
 
-    if (entry->category != SymbolCategory::PROCEDURE) {
+    if (!entry || entry->category != SymbolCategory::PROCEDURE) {
         semantic_error(no->identifier + " is not a procedure");
         return;
     }
 
     auto p = dynamic_pointer_cast<ProcEntry>(entry);
 
-    if (p->param_list.size() != no->expression_list.size()) {
+    if (p->param_list.size() != no->expression_list.size())
         semantic_error("argument count mismatch in call to " + no->identifier);
-    }
 
     for (size_t i = 0; i < no->expression_list.size(); ++i) {
         no->expression_list[i]->accept(this);
         if (i < p->param_list.size() &&
             no->expression_list[i]->inferred_type != p->param_list[i]->type) {
-            semantic_error("argument type mismatch in procedure " + no->identifier);
+            semantic_error("argument type mismatch in call to " + no->identifier);
         }
     }
 }
 
 void CheckVisitor::visit(NoConditional* no) {
     no->condition->accept(this);
-    if (no->condition->inferred_type != VarType::BOOLEAN) {
+    if (no->condition->inferred_type != VarType::BOOLEAN)
         semantic_error("condition in 'if' must be boolean");
-    }
     if (no->then_cmd) no->then_cmd->accept(this);
     if (no->else_cmd) no->else_cmd->accept(this);
 }
 
 void CheckVisitor::visit(NoRepetition* no) {
     no->condition->accept(this);
-    if (no->condition->inferred_type != VarType::BOOLEAN) {
+    if (no->condition->inferred_type != VarType::BOOLEAN)
         semantic_error("condition in 'while' must be boolean");
-    }
     if (no->body) no->body->accept(this);
 }
 
 void CheckVisitor::visit(NoRead* no) {
-    for (const string &id : no->identifier_list) {
-        auto entry = this->symbols->search(id);
+    for (auto &id : no->identifier_list) {
+        auto entry = symbols->search(id);
         if (!entry) {
             semantic_error("variable " + id + " not declared");
             continue;
@@ -278,26 +306,24 @@ void CheckVisitor::visit(NoRead* no) {
 }
 
 void CheckVisitor::visit(NoWrite* no) {
-    for (auto &expr : no->expression_list) {
+    for (auto &expr : no->expression_list)
         expr->accept(this);
-    }
 }
 
 void CheckVisitor::visit(NoProgram* no) {
     auto prog = make_shared<ProgramEntry>(no->identifier);
-    if (!this->symbols->install(prog)) {
+
+    if (!symbols->install(prog))
         semantic_error("program " + no->identifier + " redeclared");
-    }
 
-    for (auto &decl : no->declaration_section) {
+    for (auto &decl : no->declaration_section)
         decl->accept(this);
-    }
 
-    for (auto &r : no->subroutine_section) {
+    for (auto &r : no->subroutine_section)
         r->accept(this);
-    }
 
-    if (no->body) no->body->accept(this);
+    if (no->body)
+        no->body->accept(this);
 }
 
 CheckVisitor::CheckVisitor(shared_ptr<SymbolTableManager> symbols) {
