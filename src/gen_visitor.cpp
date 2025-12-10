@@ -25,15 +25,55 @@ void GenVisitor::emit(const string &code, int a, int b) {
 }
 
 void GenVisitor::visit(NoDeclaration* no) { }
-void GenVisitor::visit(NoSubroutine* no) { }
+void GenVisitor::visit(NoSubroutine* no) {
+    auto s = this->symbol->search(no->identifier);
+    if (s == nullptr) return;
+    auto l = new_label();
+    emit_label(l);
+    switch (s->category) {
+    case SymbolCategory::FUNCTION:
+        auto t = dynamic_pointer_cast<FuncEntry>(s);
+        t->label_num = l;
+        break;
+    case SymbolCategory::PROCEDURE:
+        auto t = dynamic_pointer_cast<ProcEntry>(s);
+        t->label_num = l;
+        break;
+    }
+}
 void GenVisitor::visit(NoUnaryExpr* no) { }
 void GenVisitor::visit(NoBinExpr* no) { }
 
 void GenVisitor::visit(NoVarExpr* no) {
-    
+    auto s = this->symbols->search(no->identifier);
+    int m;
+    if (this->symbols->state == Scope::GLOBAL) m = 0;
+    else m = 1;
+    int n;
+    switch (s->category) {
+    case SymbolCategory::PARAMETER:
+        auto t = dynamic_pointer_cast<ParamEntry>(s);
+        n = t->address;
+        break;
+    case SymbolCategory::VARIABLE:
+        auto t = dynamic_pointer_cast<VarEntry>(s);
+        n = t->address;
+        break;
+    }
+    emit("CRVL", m, n);
 }
-
-void GenVisitor::visit(NoLiteralExpr* no) { }
+void GenVisitor::visit(NoLiteralExpr* no) {
+    switch (no->type) {
+    case VarType::BOOLEAN:
+        int v = 0;
+        if (no->logic) v = 1;
+        emit("CRCT", v);
+        break;
+    case VarType::INTEGER:
+        emit("CRCT", no->num);
+        break;
+    }
+}
 void GenVisitor::visit(NoCallExpr* no) { }
 void GenVisitor::visit(NoCompositeCommand* no) { }
 void GenVisitor::visit(NoAssignment* no) { }
